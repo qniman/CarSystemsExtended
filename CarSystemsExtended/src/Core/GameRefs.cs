@@ -67,6 +67,16 @@ namespace CSE.Core
             get { return playerHasRatchet != null && playerHasRatchet.Value; }
         }
 
+        /// The game's "Use" button (rebindable in its options; F by default).
+        public static bool UseButtonDown
+        {
+            get
+            {
+                try { return cInput.GetButtonDown("Use"); }
+                catch { return Input.GetKeyDown(KeyCode.F); }
+            }
+        }
+
         public static bool IsHeld(GameObject go)
         {
             return ItemPivot != null && go.transform.parent == ItemPivot;

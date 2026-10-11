@@ -176,9 +176,9 @@ namespace CSE.Parts
         {
             if (part.Def == PartCatalog.AlarmUnit)
             {
-                if (AlarmWiring.PowerConnected) return "DISCONNECT POWER FIRST";
+                // Device wires are unplugged at the device end.
                 foreach (var p in Parts)
-                    if (p != null && p.WireConnected) return "DISCONNECT WIRES FIRST";
+                    if (p != null && p.WireConnected) return "UNPLUG " + p.Def.Name.ToUpper() + " FIRST";
             }
             return null;
         }

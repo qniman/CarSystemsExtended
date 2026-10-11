@@ -81,6 +81,16 @@ namespace CSE.Systems
             }
         }
 
+        /// Every door that is on the car is locked (false if one has no working actuator).
+        public static bool AllClosedDoorsLocked
+        {
+            get
+            {
+                foreach (var d in doors) if (d.T != null && !d.Locked) return false;
+                return true;
+            }
+        }
+
         public static string StatusText
         {
             get

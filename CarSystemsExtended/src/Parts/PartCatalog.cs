@@ -101,6 +101,36 @@ namespace CSE.Parts
             },
         };
 
+        /// Status LED on top of the dash by the windscreen, visible from outside.
+        public static readonly PartDef StatusLed = new PartDef
+        {
+            Id = "cse_status_led",
+            Name = "alarm led",
+            Mass = 0.05f,
+            ColliderSize = new Vector3(0.03f, 0.02f, 0.03f),
+            ColliderCenter = new Vector3(0f, 0.005f, 0f),
+            Mounts = new[]
+            {
+                new MountDef
+                {
+                    Label = "dash top by the windscreen",
+                    Offset = new Vector3(-0.45f, 0.38f, 0.55f),
+                },
+            },
+            Bolts = new[]
+            {
+                new BoltDef(new Vector3(0.011f, -0.002f, 0f), new Vector3(-90, 0, 0), 5),
+            },
+            Wired = true,
+            PlugPos = new Vector3(0f, -0.004f, -0.012f),
+            Build = t =>
+            {
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, -0.003f, 0f), new Vector3(0.03f, 0.002f, 0.018f), Shapes.Steel);
+                Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, 0.003f, 0f), new Vector3(0.012f, 0.005f, 0.012f), Shapes.Black);
+                Shapes.Add(t, PrimitiveType.Sphere, new Vector3(0f, 0.009f, 0f), new Vector3(0.008f, 0.008f, 0.008f), Shapes.LedOff, default(Vector3), "led");
+            },
+        };
+
         /// Key fob. Not mounted: it goes onto the Satsuma keyring (see AlarmSystem).
         public static readonly PartDef Fob = new PartDef
         {
@@ -246,13 +276,13 @@ namespace CSE.Parts
         // Parents before children: load order depends on it.
         public static readonly PartDef[] All =
         {
-            AlarmUnit, Siren, Fuse, Fob, LockActuator, ChokeServo,
+            AlarmUnit, Siren, Fuse, StatusLed, Fob, LockActuator, ChokeServo,
             Brochure, Envelope, Parcel,
         };
 
         public static class Kits
         {
-            public static readonly PartDef[] Alarm = { AlarmUnit, Siren, Fuse, Fuse, Fob };
+            public static readonly PartDef[] Alarm = { AlarmUnit, Siren, Fuse, Fuse, StatusLed, Fob };
             public static readonly PartDef[] DoorLocks = { LockActuator, LockActuator };
             public static readonly PartDef[] ChokeServo = { PartCatalog.ChokeServo };
         }

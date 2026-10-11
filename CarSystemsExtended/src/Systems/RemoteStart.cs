@@ -118,13 +118,60 @@ namespace CSE.Systems
 
         // ---------------------------------------------------------------- fob button
 
+        // Two-way remote: the fob beeps when it sends, the car acts when the signal arrives a
+        // moment later, and the fob plays a tune when the car reports back.
+        const float SignalDelay = 0.6f;
+        const float ReplyDelay = 0.5f;
+
+        enum Reply { None, Ok, Fail, Stopped }
+
+        static bool commandPending;
+        static float commandAt;
+        static Reply reply;
+        static float replyAt;
+
         public static void OnButton()
         {
-            if (!AlarmSystem.FobWorks || !AlarmSystem.Powered || starter == null) return;
+            if (!AlarmSystem.FobWorks || starter == null) return;
+            Sfx.FobSend();
+            // Out of power the car simply never answers.
+            if (!AlarmSystem.Powered) return;
+            commandPending = true;
+            commandAt = Time.time + SignalDelay;
+        }
+
+        static void SendReply(Reply r)
+        {
+            reply = r;
+            replyAt = Time.time + ReplyDelay;
+        }
+
+        static void TickRadio()
+        {
+            if (commandPending && Time.time >= commandAt)
+            {
+                commandPending = false;
+                if (AlarmSystem.Powered) Execute();
+            }
+            if (reply != Reply.None && Time.time >= replyAt)
+            {
+                // The fob only hears the car while in range.
+                if (AlarmSystem.FobWorks)
+                {
+                    if (reply == Reply.Ok) Sfx.FobOk();
+                    else if (reply == Reply.Fail) Sfx.FobFail();
+                    else Sfx.FobStop();
+                }
+                reply = Reply.None;
+            }
+        }
+
+        static void Execute()
+        {
             if (Active)
             {
                 Stop("stopped from remote");
-                AlarmSystem.Chirp(1);
+                SendReply(Reply.Stopped);
                 return;
             }
 
@@ -133,6 +180,7 @@ namespace CSE.Systems
             {
                 LastResult = "refused: " + refuse;
                 AlarmSystem.Chirp(3);
+                SendReply(Reply.Fail);
                 return;
             }
 
@@ -165,6 +213,7 @@ namespace CSE.Systems
 
         public static void Tick()
         {
+            TickRadio();
             if (!Active) return;
 
             // Driver turned the key: hand over, the engine keeps running on the key.
@@ -195,6 +244,7 @@ namespace CSE.Systems
                         runStart = Time.time;
                         SetPhase(Phase.Running, 0f);
                         Flasher.Flash(2);
+                        SendReply(Reply.Ok);
                     }
                     else if (Time.time >= phaseUntil)
                     {
@@ -203,6 +253,7 @@ namespace CSE.Systems
                         {
                             Stop("did not start");
                             AlarmSystem.Chirp(3);
+                            SendReply(Reply.Fail);
                         }
                         else SetPhase(Phase.Pausing, PauseTime);
                     }

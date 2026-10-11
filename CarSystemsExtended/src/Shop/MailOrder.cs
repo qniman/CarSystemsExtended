@@ -30,7 +30,7 @@ namespace CSE.Shop
             {
                 Id = "alarm",
                 Title = "VARTIJA 95 car alarm with remote start",
-                Blurb = "Alarm unit, siren, remote control, 2 x 15A fuse. Shock sensor, door, bonnet and " +
+                Blurb = "Alarm unit, siren, remote control, dash LED, 2 x 15A fuse. Shock sensor, door, bonnet and " +
                         "ignition guard. Warms up your engine on cold mornings at the press of a button!",
                 Price = 1890,
                 Contents = PartCatalog.Kits.Alarm,

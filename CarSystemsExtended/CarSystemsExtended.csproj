@@ -24,6 +24,7 @@
     <Reference Include="MSCLoader"><HintPath>$(Managed)\MSCLoader.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine"><HintPath>$(Managed)\UnityEngine.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="PlayMaker"><HintPath>$(Managed)\PlayMaker.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="cInput"><HintPath>$(Managed)\cInput.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Assembly-CSharp"><HintPath>$(Managed)\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
   <Target Name="CopyToMods" AfterTargets="Build">

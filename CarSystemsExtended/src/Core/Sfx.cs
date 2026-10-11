@@ -118,16 +118,78 @@ namespace CSE.Core
             return clip;
         }
 
-        /// 3D audio source attached to a device.
-        public static AudioSource CreateSource(GameObject host, float maxDistance = 40f)
+        /// 3D audio source attached to a device. Logarithmic rolloff: full volume within
+        /// minDistance, halving with every doubling of distance after that, like a real horn.
+        public static AudioSource CreateSource(GameObject host, float minDistance = 2f, float maxDistance = 200f)
         {
             var src = host.AddComponent<AudioSource>();
             src.playOnAwake = false;
             src.spatialBlend = 1f;
-            src.rolloffMode = AudioRolloffMode.Linear;
-            src.minDistance = 1f;
+            src.rolloffMode = AudioRolloffMode.Logarithmic;
+            src.minDistance = minDistance;
             src.maxDistance = maxDistance;
             return src;
+        }
+
+        // ---- key fob piezo (two-way remote): played in the player's hand, not in 3D
+
+        static AudioSource fobSource;
+        static AudioClip fobSend, fobOk, fobFail, fobStop;
+
+        static AudioSource FobSource
+        {
+            get
+            {
+                if (fobSource != null) return fobSource;
+                var go = new GameObject("cse_fob_audio");
+                UnityEngine.Object.DontDestroyOnLoad(go);
+                fobSource = go.AddComponent<AudioSource>();
+                fobSource.playOnAwake = false;
+                fobSource.spatialBlend = 0f;
+                fobSource.volume = 0.35f;
+                return fobSource;
+            }
+        }
+
+        /// Notes as (frequency Hz, seconds); 0 Hz is a rest.
+        static AudioClip Melody(string name, params float[] notes)
+        {
+            var samples = new System.Collections.Generic.List<float>();
+            for (int i = 0; i + 1 < notes.Length; i += 2)
+            {
+                var tone = notes[i] > 0 ? Sweep(name, notes[i + 1], notes[i], notes[i], 0.5f) : null;
+                int n = Mathf.CeilToInt(notes[i + 1] * Rate);
+                var buf = new float[n];
+                if (tone != null) tone.GetData(buf, 0);
+                samples.AddRange(buf);
+            }
+            var clip = AudioClip.Create(name, samples.Count, 1, Rate, false);
+            clip.SetData(samples.ToArray(), 0);
+            return clip;
+        }
+
+        public static void FobSend()
+        {
+            if (fobSend == null) fobSend = Melody("cse_fob_send", 2093, 0.07f, 0, 0.03f, 2637, 0.07f, 0, 0.03f, 3136, 0.1f);
+            FobSource.PlayOneShot(fobSend);
+        }
+
+        public static void FobOk()
+        {
+            if (fobOk == null) fobOk = Melody("cse_fob_ok", 3136, 0.09f, 0, 0.04f, 3136, 0.09f, 0, 0.04f, 4186, 0.25f);
+            FobSource.PlayOneShot(fobOk);
+        }
+
+        public static void FobFail()
+        {
+            if (fobFail == null) fobFail = Melody("cse_fob_fail", 880, 0.18f, 0, 0.08f, 880, 0.3f);
+            FobSource.PlayOneShot(fobFail);
+        }
+
+        public static void FobStop()
+        {
+            if (fobStop == null) fobStop = Melody("cse_fob_stop", 3136, 0.08f, 0, 0.03f, 2637, 0.08f, 0, 0.03f, 2093, 0.14f);
+            FobSource.PlayOneShot(fobStop);
         }
     }
 }

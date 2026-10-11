@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CSE.Core;
+using CSE.Electrics;
 using MSCLoader;
 using UnityEngine;
 
@@ -206,30 +207,28 @@ namespace CSE.Parts
                 return;
             }
 
-            if (Def.Wired && PartManager.AlarmUnitInstalled)
+            // Wires are laid with the wiring mess (AlarmWiring); pulling a plug needs no tool.
+            if (Def.Wired && WireConnected)
             {
-                if (!WireConnected)
+                Gui.Interaction("DISCONNECT WIRE (RMB)");
+                if (Input.GetMouseButtonDown(1))
                 {
-                    Gui.Interaction("CONNECT WIRE");
-                    if (Input.GetMouseButtonDown(0))
-                    {
-                        WireConnected = true;
-                        Sfx.Game("CarFoley", "carkeys_in", Plug.position, 0.6f);
-                        PartManager.OnPartChanged(this);
-                    }
-                    // fall through so the part can still be removed while unwired
+                    WireConnected = false;
+                    Sfx.Game("CarFoley", "carkeys_out", Plug.position, 0.6f);
+                    PartManager.OnPartChanged(this);
                 }
-                else
+                return;
+            }
+            if (Def == PartCatalog.AlarmUnit && AlarmWiring.PowerConnected)
+            {
+                Gui.Interaction("DISCONNECT POWER (RMB)");
+                if (Input.GetMouseButtonDown(1))
                 {
-                    Gui.Interaction("DISCONNECT WIRE");
-                    if (Input.GetMouseButtonDown(1))
-                    {
-                        WireConnected = false;
-                        Sfx.Game("CarFoley", "carkeys_out", Plug.position, 0.6f);
-                        PartManager.OnPartChanged(this);
-                    }
-                    return;
+                    AlarmWiring.PowerConnected = false;
+                    Sfx.Game("CarFoley", "carkeys_out", Plug.position, 0.6f);
+                    PartManager.OnPartChanged(this);
                 }
+                return;
             }
 
             if (AnyBoltIn) return;
