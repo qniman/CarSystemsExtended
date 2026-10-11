@@ -47,6 +47,29 @@ namespace CSE.Core
             return go;
         }
 
+        static Shader glowShader;
+        static bool glowLooked;
+
+        /// A self-lit LED lens named "led" (the alarm code looks it up by name). Uses the
+        /// legacy self-illumin shader so it glows in the dark; plain diffuse if missing.
+        public static GameObject AddLed(Transform parent, Vector3 localPos, float size)
+        {
+            var go = Add(parent, PrimitiveType.Sphere, localPos, Vector3.one * size, LedOff, default(Vector3), "led");
+            if (!glowLooked)
+            {
+                glowLooked = true;
+                glowShader = Shader.Find("Self-Illumin/Diffuse") ?? Shader.Find("Legacy Shaders/Self-Illumin/Diffuse");
+                ModConsole.Log("[CSE] LED shader: " + (glowShader != null ? glowShader.name : "<none, diffuse>"));
+            }
+            if (glowShader != null)
+            {
+                var r = go.GetComponent<Renderer>();
+                r.material.shader = glowShader;
+                r.material.color = LedOff;
+            }
+            return go;
+        }
+
         public static readonly Color Black = new Color(0.08f, 0.08f, 0.08f);
         public static readonly Color DarkGrey = new Color(0.22f, 0.22f, 0.22f);
         public static readonly Color Steel = new Color(0.6f, 0.6f, 0.62f);

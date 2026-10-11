@@ -386,7 +386,7 @@ namespace CSE.Systems
         static bool Flashes(float t, int n)
         {
             float phase = Mathf.Repeat(t, 1.5f);
-            return phase < n * 0.25f && Mathf.Repeat(phase, 0.25f) < 0.08f;
+            return phase < n * 0.25f && Mathf.Repeat(phase, 0.25f) < 0.12f;
         }
 
         /// The status pattern, shared by both LEDs:

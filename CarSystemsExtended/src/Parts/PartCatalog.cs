@@ -42,7 +42,7 @@ namespace CSE.Parts
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(0.08f, -0.0155f, 0f), new Vector3(0.035f, 0.004f, 0.03f), Shapes.Steel);
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(-0.04f, 0f, -0.05f), new Vector3(0.04f, 0.018f, 0.012f), Shapes.DarkGrey);
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(0.045f, 0.0215f, -0.03f), new Vector3(0.03f, 0.008f, 0.014f), Shapes.DarkGrey);
-                Shapes.Add(t, PrimitiveType.Sphere, new Vector3(0.03f, 0.005f, 0.045f), new Vector3(0.008f, 0.008f, 0.008f), Shapes.LedOff, default(Vector3), "led");
+                Shapes.AddLed(t, new Vector3(0.03f, 0.005f, 0.045f), 0.008f);
             },
         };
 
@@ -121,17 +121,14 @@ namespace CSE.Parts
                     Euler = new Vector3(0f, -5f, 0f),
                 },
             },
-            Bolts = new[]
-            {
-                new BoltDef(new Vector3(0.011f, -0.002f, 0f), new Vector3(-90, 0, 0), 5),
-            },
+            // No bolts: like the real thing it is pushed into a hole drilled in the dash top.
             Wired = true,
             PlugPos = new Vector3(0f, -0.004f, -0.012f),
             Build = t =>
             {
-                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, -0.003f, 0f), new Vector3(0.03f, 0.002f, 0.018f), Shapes.Steel);
+                Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, -0.002f, 0f), new Vector3(0.018f, 0.0015f, 0.018f), Shapes.Black);
                 Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, 0.003f, 0f), new Vector3(0.012f, 0.005f, 0.012f), Shapes.Black);
-                Shapes.Add(t, PrimitiveType.Sphere, new Vector3(0f, 0.009f, 0f), new Vector3(0.008f, 0.008f, 0.008f), Shapes.LedOff, default(Vector3), "led");
+                Shapes.AddLed(t, new Vector3(0f, 0.009f, 0f), 0.008f);
             },
         };
 
