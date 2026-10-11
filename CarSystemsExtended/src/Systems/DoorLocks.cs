@@ -18,6 +18,8 @@ namespace CSE.Systems
             public Transform T;
             public PlayMakerFSM Use;
             public FsmBool Open;
+            /// The LMB check in the "closed door, mouse over" state; disabled while locked.
+            public FsmStateAction OpenClick;
             public bool Locked;
         }
 
@@ -47,6 +49,21 @@ namespace CSE.Systems
             d.T = t;
             d.Use = t != null ? t.gameObject.GetPlayMaker("Use") : null;
             d.Open = d.Use != null ? d.Use.FsmVariables.FindFsmBool("Open") : null;
+            d.OpenClick = d.Use != null ? FindOpenClick(d.Use) : null;
+            if (d.Use != null && d.OpenClick == null)
+                ModConsole.Warning("[CSE] Door open action not found on " + d.Path + ", it cannot be locked");
+        }
+
+        static FsmStateAction FindOpenClick(PlayMakerFSM use)
+        {
+            use.InitializeFSM();
+            foreach (var s in use.FsmStates)
+            {
+                if (s.Name != "Mouse over 1") continue;
+                foreach (var a in s.Actions)
+                    if (a is HutongGames.PlayMaker.Actions.GetMouseButtonDown) return a;
+            }
+            return null;
         }
 
         static bool ActuatorReady(Door d)
@@ -113,12 +130,15 @@ namespace CSE.Systems
 
         static void SetLocked(Door d, bool locked, bool silent)
         {
+            // Never disable the door FSM itself: re-enabling restarts it, and its start state adds
+            // a second FixedJoint, leaving the door welded shut while it thinks it is open.
             d.Locked = locked;
-            if (d.Use != null)
+            if (d.OpenClick != null)
             {
-                d.Use.enabled = !locked;
-                // A disabled FSM cannot clear the hint it may have been showing.
-                if (locked) GameRefs.SetGui(false, false, false, "");
+                d.OpenClick.Enabled = !locked;
+                // The flag is read on state entry; bounce the FSM out of the hover state so the
+                // change applies to the very next click.
+                if (d.Use.ActiveStateName == "Mouse over 1") d.Use.SendEvent("LOOP");
             }
             if (!silent && d.T != null) Sfx.At(Sfx.Thunk, d.T.position, 0.8f);
             GameRefs.DrainBattery(0.02f);
