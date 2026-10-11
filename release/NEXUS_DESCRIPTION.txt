@@ -1,249 +1,216 @@
 =====================================================================
-SUMMARY (Nexus "Brief overview" field, EN)
+BRIEF OVERVIEW (Nexus summary field)
 =====================================================================
+EN:
 A 1995-style aftermarket car alarm for the Satsuma: order it from a mail-order catalog, bolt it in with your wrenches, wire it with the wiring mess, then lock the doors, guard the car and warm the engine up from the key fob. Successor of Key System Extended.
 
-=====================================================================
-SUMMARY (RU)
-=====================================================================
+RU:
 Сигнализация для Сатсумы в духе 1995 года: закажите её по почтовому каталогу, прикрутите ключами, подключите через wiring mess, а потом запирайте двери, ставьте машину на охрану и прогревайте двигатель с брелка. Продолжение мода Key System Extended.
 
 
 =====================================================================
-DESCRIPTION — ENGLISH (BBCode)
+ENGLISH (BBCode)
 =====================================================================
 
-[size=5][b]Car Systems Extended[/b][/size]
-[i]Aftermarket car alarm, central locking and remote start for the Satsuma — the 1995 way.[/i]
+[size=5][b]Description[/b][/size]
 
-This is the successor of my earlier mod [b]Key System Extended[/b]. That one could lock and unlock the doors and had a very rough remote start. Car Systems Extended is rebuilt from scratch: everything is a real part you buy, install, bolt down and wire up yourself, and every system runs on the game's own simulation.
+[b]Car Systems Extended[/b] adds a period-correct aftermarket car alarm to the Satsuma: central locking, an alarm with a siren and a two-way remote, and remote start with engine warm-up — the way a Finnish car owner would have fitted it in 1995.
 
-[size=4][b]Features[/b][/size]
+It is the successor of my earlier mod [b]Key System Extended[/b], which could lock and unlock the doors and had a very rough remote start. Car Systems Extended is rebuilt from scratch: every component is a real part you order, install, bolt down and wire up yourself, and every system runs on the game's own simulation — a car that will not start on the key will not start from the remote either.
+
+[size=5][b]Installation instructions[/b][/size]
+
+[list=1]
+[*]Install [b]MSCLoader[/b] if you do not have it yet.
+[*]If you use [b]Key System Extended[/b], remove it from the [i]Mods[/i] folder first.
+[*]Extract [b]CarSystemsExtended.dll[/b] from the archive into your [i]Mods[/i] folder:
+[code]...\steamapps\common\My Summer Car\Mods\[/code]
+[*]Start the game and load your save. The [i]Autotarvike[/i] catalog appears at home next to the parts magazine.
+[/list]
+
+[b]Getting started in game[/b]
+[list=1]
+[*]Look at the Autotarvike catalog and press RMB. Tick the kits you want and fill in the order form.
+[*]Post the envelope in the post box at Teimo's shop.
+[*]The next day pay for the parcel at the post office (cash on delivery) and open it with RMB.
+[*]Install the parts: alarm unit under the dash (7 mm), siren in the engine bay (10 mm), fuse into the unit, LED on the dash top by the windscreen; door lock actuators inside the doors (6 mm); choke servo by the carburettor (8 mm).
+[*]Wire with the game's wiring mess (Use key): alarm unit → ALARM FEED at the fuse box, then every device → alarm unit.
+[*]When everything is right the siren chirps once. Hold the remote and press L to put it on the Satsuma keys. Done.
+[/list]
+
+[b]Controls[/b] (changeable in the mod settings): [b]L[/b] lock / arm, [b]U[/b] unlock / disarm, [b]H[/b] remote start / stop.
+
+[size=5][b]Main features[/b][/size]
 
 [b]Mail-order catalog[/b]
 [list]
-[*]The [i]Autotarvike[/i] brochure appears at home next to the parts magazine.
-[*]Tick the kits you want, fill in the order form and you get an envelope.
-[*]Drop it in the post box at Teimo's shop. The parcel waits at the post office the next day, cash on delivery (postiennakko), just like the game's own orders.
-[*]Open the parcel and the parts spill out.
+[*]Order kits from the [i]Autotarvike[/i] brochure, post the order at Teimo's, collect the parcel at the post office the next day and pay cash on delivery (postiennakko) — just like the game's own parts orders.
 [/list]
 
 [b]Real installation[/b]
 [list]
-[*]Every part snaps onto its own spot on the car and is held by bolts.
-[*]Bolts work with the game's wrenches and ratchet, including size check and highlighting. Compatible with ShowBoltSize.
-[*]Wiring is done with the game's [b]wiring mess[/b], point to point: alarm unit to the fuse box, every device to the alarm unit. No cables hanging across the car — wires disappear into grommets behind the trim.
-[*]15 A fuse in the alarm unit; ground goes through the unit's mounting bolts. Loose bolts, missing fuse or a flat battery and the alarm is dead.
+[*]Every part snaps onto its own spot on the car and is held by bolts tightened with the game's wrenches and ratchet (size check and highlighting included, compatible with ShowBoltSize).
+[*]Wiring is laid with the game's wiring mess, point to point. No cables hanging across the car — the wires disappear into grommets behind the trim.
+[*]15 A fuse in the alarm unit, ground through its mounting bolts. Loose bolts, a missing fuse or a flat battery and the alarm is dead.
 [/list]
 
 [b]VARTIJA 95 alarm[/b]
 [list]
-[*]The remote control goes on your Satsuma keyring. It does not work while the key is in the ignition.
-[*]Lock and arm / unlock and disarm with chirps and indicator flashes. It refuses to arm with a door or the bonnet open.
-[*]Triggers: shock, door opened, bonnet opened, ignition turned, car pushed or towed.
-[*]30-second siren with flashing indicators, then it re-arms. The siren follows its wiring live.
-[*]Two-way remote: the fob trills like a pager while the alarm is going off (up to ~140 m).
-[*]Alarm memory: the dash LED and four chirps on disarm tell you it went off while you were away.
-[*]Dash status LED by the windscreen: armed, a door not locked, alarm memory, alarm, warming up.
+[*]The remote goes on the Satsuma keyring; it does not work while the key is in the ignition.
+[*]Arm and disarm with siren chirps and flashing indicators; refuses to arm with a door or the bonnet open.
+[*]Goes off on a shock, an opened door or bonnet, the ignition being turned, or the car being pushed or towed.
+[*]30-second siren with flashing indicators, then it re-arms.
+[*]Two-way remote: it trills like a pager while the alarm is going off (up to ~140 m).
+[*]Alarm memory, and a dash LED by the windscreen showing armed / door not locked / alarm memory / alarm / warming up.
 [*]Realistic battery drain while armed and while the siren sounds.
 [/list]
 
 [b]Central locking[/b]
 [list]
-[*]A lock actuator inside each door, riding with the door.
-[*]Locked doors cannot be opened from outside. From inside you can pull the lock knob, but if the car is armed the siren goes off.
+[*]A lock actuator inside each door. Locked doors cannot be opened from outside; unlocking from inside sets off the alarm if the car is armed.
 [/list]
 
 [b]Remote start and warm-up[/b]
 [list]
-[*]One button on the fob. The fob beeps when it sends, and plays a tune when the car reports back that the engine is running (or a buzz if it failed).
-[*]Starts only in neutral, with the handbrake on and the bonnet shut.
-[*]Up to three cranking attempts. Runs until the engine reaches the set temperature or the time limit, then switches off.
-[*]Uses the game's own simulation: no fuel, a flat battery or a worn starter and it will not start remotely either.
-[*]Taking over: disarm, get in, turn the key, then hold the brake pedal for 2 seconds. The hazards blink twice and the car is yours. Drive off without confirming and the engine stalls.
-[*][b]Choke servo[/b] (optional): pulls the choke on cold starts and lets it off as the engine warms.
+[*]One button on the remote. The remote beeps when it sends and plays a tune when the car reports back that the engine is running.
+[*]Starts only in neutral, with the handbrake on and the bonnet shut. Up to three cranking attempts.
+[*]Runs until the engine reaches the set temperature or the time limit, then switches off.
+[*]To drive off: disarm, get in, turn the key and hold the brake pedal for 2 seconds — the hazards blink twice and the car is yours. Drive off without confirming and the engine stalls.
+[*]Optional choke servo pulls the choke on cold starts and lets it off as the engine warms.
 [/list]
 
 [b]Other[/b]
 [list]
 [*]Everything is saved with your game.
 [*]English and Russian.
-[*]"Reset" button in the mod settings to remove everything and start over (the old state is kept as a backup).
+[*]Settings: warm-up temperature (40–80 °C) and time limit (3–20 min), key bindings, and a Reset button that removes everything and starts over.
 [/list]
 
-[size=4][b]Catalog prices[/b][/size]
-[list]
-[*]VARTIJA 95 car alarm with remote start (alarm unit, siren, remote, dash LED, 2 fuses) — 1890 mk
-[*]Central locking actuators, pair — 640 mk
-[*]Automatic choke servo — 420 mk
-[*]Postage — 35 mk
-[/list]
+[b]Catalog prices:[/b] alarm with remote start 1890 mk, central locking actuators (pair) 640 mk, choke servo 420 mk, postage 35 mk.
 
-[size=4][b]Controls[/b][/size] [i](can be changed in the mod settings)[/i]
-[list]
-[*][b]L[/b] — lock / arm (also: put the remote on the Satsuma keys while holding it)
-[*][b]U[/b] — unlock / disarm
-[*][b]H[/b] — remote start / stop
-[*][b]Use[/b] (game key, F by default) — lay a wire with the wiring mess
-[*][b]RMB[/b] — read the catalog, open a parcel, unplug a wire
-[/list]
-
-[size=4][b]Installation[/b][/size]
-[list=1]
-[*]Install [b]MSCLoader[/b] (built and tested with 1.4.2).
-[*]Put [b]CarSystemsExtended.dll[/b] into your [i]Mods[/i] folder.
-[*][b]Remove Key System Extended[/b] if you have it — both mods lock the doors and start the engine.
-[/list]
-
-[size=4][b]Quick start[/b][/size]
-[list=1]
-[*]Find the Autotarvike brochure next to the parts magazine at home, look at it and press RMB.
-[*]Order the alarm (and the door locks / choke servo if you like), post the envelope at Teimo's.
-[*]Next day pay for the parcel at the post office and open it.
-[*]Alarm unit under the dash (7 mm), siren in the engine bay (10 mm), fuse into the unit, LED on the dash top by the windscreen. Door lock actuators inside the doors (6 mm), choke servo by the carburettor (8 mm).
-[*]Wire with the wiring mess: alarm unit → ALARM FEED at the fuse box, then every device → alarm unit.
-[*]When everything is right the siren chirps once. Hold the remote and press L to put it on the keys. Done.
-[/list]
-
-[size=4][b]Settings[/b][/size]
-[list]
-[*]Language: English / Русский
-[*]Remote start: warm up to 40–80 °C (default 60), stop after 3–20 minutes (default 10)
-[*]Reset Car Systems Extended
-[*]Debug mode: overlay with the state of every system, test keys and a mount editor
-[/list]
-
-[size=4][b]Known limitations[/b][/size]
-[list]
-[*]Satsuma only.
-[*]Parts use simple placeholder models for now.
-[/list]
-
-[size=4][b]Planned[/b][/size]
-[list]
-[*]Parking sensors
-[*]Trip computer and extra gauges
-[*]Proper 3D models for the parts
-[/list]
+[b]Known limitations:[/b] Satsuma only; parts use simple placeholder models for now.
+[b]Planned:[/b] parking sensors, trip computer and extra gauges, proper 3D models.
 
 Bug reports and ideas are welcome in the comments. If something breaks, please attach your [i]output_log.txt[/i].
 
+[size=5][b]Requirements[/b][/size]
+
+[list]
+[*][b]My Summer Car[/b] (current Steam version)
+[*][b]MSCLoader[/b] 1.4.2 or newer
+[*]No other mods required
+[*][b]Not compatible with Key System Extended[/b] — both mods lock the doors and start the engine. Remove it before installing.
+[/list]
+
+[size=5][b]Shout outs[/b][/size]
+
+[list]
+[*][b]Amistech Games[/b] (Johannes and Kaarina Rojola) for My Summer Car.
+[*]The [b]MSCLoader[/b] team for making modding the game possible.
+[*][b]wolf_vx[/b] and [b]Lex[/b] for ShowBoltSize, which this mod plays nicely with.
+[*]Everyone who used [b]Key System Extended[/b] and asked for more.
+[/list]
+
 
 =====================================================================
-ОПИСАНИЕ — РУССКИЙ (BBCode)
+РУССКИЙ (BBCode)
 =====================================================================
 
-[size=5][b]Car Systems Extended[/b][/size]
-[i]Сигнализация, центральный замок и автозапуск для Сатсумы — как в 1995 году.[/i]
+[size=5][b]Описание[/b][/size]
 
-Это продолжение моего мода [b]Key System Extended[/b]. Тот умел запирать и отпирать двери и имел очень сырой автозапуск. Car Systems Extended написан с нуля: всё — настоящие детали, которые вы сами покупаете, ставите, прикручиваете и подключаете, а все системы работают на собственной симуляции игры.
+[b]Car Systems Extended[/b] добавляет Сатсуме сигнализацию в духе того времени: центральный замок, охрану с сиреной и двусторонним брелком, автозапуск с прогревом двигателя — так, как её поставил бы себе финский автовладелец в 1995 году.
 
-[size=4][b]Возможности[/b][/size]
+Это продолжение моего мода [b]Key System Extended[/b], который умел запирать и отпирать двери и имел очень сырой автозапуск. Car Systems Extended написан с нуля: каждый компонент — настоящая деталь, которую вы сами заказываете, ставите, прикручиваете и подключаете, а все системы работают на собственной симуляции игры — машина, которая не заводится ключом, не заведётся и с брелка.
+
+[size=5][b]Установка[/b][/size]
+
+[list=1]
+[*]Установите [b]MSCLoader[/b], если его ещё нет.
+[*]Если у вас стоит [b]Key System Extended[/b], сначала удалите его из папки [i]Mods[/i].
+[*]Распакуйте [b]CarSystemsExtended.dll[/b] из архива в папку [i]Mods[/i]:
+[code]...\steamapps\common\My Summer Car\Mods\[/code]
+[*]Запустите игру и загрузите сохранение. Каталог [i]Autotarvike[/i] появится дома рядом с журналом запчастей.
+[/list]
+
+[b]Начало игры с модом[/b]
+[list=1]
+[*]Посмотрите на каталог Autotarvike и нажмите ПКМ. Отметьте нужные комплекты и заполните бланк.
+[*]Опустите конверт в почтовый ящик у магазина Теймо.
+[*]На следующий день оплатите посылку на почте (наложенный платёж) и откройте её ПКМ.
+[*]Установите детали: блок — под торпеду (7 мм), сирена — в моторный отсек (10 мм), предохранитель — в блок, светодиод — на торпеду у лобового стекла; активаторы замков — внутрь дверей (6 мм); сервопривод подсоса — у карбюратора (8 мм).
+[*]Проводка игровым инструментом wiring mess (клавиша Use): блок → ALARM FEED у блока предохранителей, затем каждое устройство → блок.
+[*]Если всё собрано правильно, сирена один раз чирикнет. Возьмите брелок в руку и нажмите L, чтобы повесить его на ключи Сатсумы. Готово.
+[/list]
+
+[b]Управление[/b] (меняется в настройках мода): [b]L[/b] — закрыть / охрана, [b]U[/b] — открыть / снять с охраны, [b]H[/b] — автозапуск / остановка.
+
+[size=5][b]Основные возможности[/b][/size]
 
 [b]Почтовый каталог[/b]
 [list]
-[*]Брошюра [i]Autotarvike[/i] появляется дома рядом с журналом запчастей.
-[*]Отметьте нужные комплекты, заполните бланк — получите конверт.
-[*]Опустите его в почтовый ящик у магазина Теймо. На следующий день посылка ждёт на почте, оплата наложенным платежом (postiennakko) — как у игровых заказов.
-[*]Откройте посылку, и детали высыплются рядом.
+[*]Заказывайте комплекты по брошюре [i]Autotarvike[/i], отправляйте заказ у Теймо, забирайте посылку на почте на следующий день с оплатой наложенным платежом (postiennakko) — как у игровых заказов запчастей.
 [/list]
 
 [b]Настоящая установка[/b]
 [list]
-[*]Каждая деталь ставится на своё место на машине и держится на болтах.
-[*]Болты крутятся игровыми ключами и трещоткой, с проверкой размера и подсветкой. Совместимо с ShowBoltSize.
-[*]Проводка прокладывается игровым инструментом [b]wiring mess[/b] от точки к точке: блок — к блоку предохранителей, каждое устройство — к блоку. Никаких проводов через весь салон: провода уходят во втулки под обшивку.
-[*]Предохранитель 15 А в блоке, масса — через болты крепления блока. Ослаблены болты, нет предохранителя или сел аккумулятор — сигнализация мертва.
+[*]Каждая деталь ставится на своё место на машине и держится на болтах, которые затягиваются игровыми ключами и трещоткой (с проверкой размера и подсветкой, совместимо с ShowBoltSize).
+[*]Проводка прокладывается игровым инструментом wiring mess от точки к точке. Никаких проводов через весь салон — они уходят во втулки под обшивку.
+[*]Предохранитель 15 А в блоке, масса через болты крепления. Ослаблены болты, нет предохранителя или сел аккумулятор — сигнализация мертва.
 [/list]
 
 [b]Сигнализация VARTIJA 95[/b]
 [list]
-[*]Брелок вешается на ключи Сатсумы. Пока ключ в замке зажигания, брелок не работает.
-[*]Постановка на охрану и снятие с чирпами сирены и миганием поворотников. С открытой дверью или капотом на охрану не встанет.
+[*]Брелок вешается на ключи Сатсумы; пока ключ в замке зажигания, брелок не работает.
+[*]Постановка на охрану и снятие с чирпами сирены и миганием поворотников; с открытой дверью или капотом на охрану не встанет.
 [*]Срабатывает от удара, открытия двери или капота, поворота ключа, если машину толкают или тянут.
-[*]Сирена 30 секунд с миганием поворотников, потом снова охрана. Сирена честно зависит от своего провода.
+[*]Сирена 30 секунд с миганием поворотников, затем снова охрана.
 [*]Двусторонний брелок: пока машина воет, брелок пищит как пейджер (до ~140 м).
-[*]Память тревоги: светодиод и четыре чирпа при снятии с охраны сообщат, что без вас была тревога.
-[*]Выносной светодиод у лобового стекла: охрана, незапертая дверь, память тревоги, тревога, прогрев.
+[*]Память тревоги и светодиод у лобового стекла: охрана / незапертая дверь / память тревоги / тревога / прогрев.
 [*]Реалистичный расход аккумулятора под охраной и при воющей сирене.
 [/list]
 
 [b]Центральный замок[/b]
 [list]
-[*]Активатор замка внутри каждой двери, ездит вместе с дверью.
-[*]Запертую дверь не открыть снаружи. Изнутри можно отпереть кнопку, но если машина под охраной — завоет сирена.
+[*]Активатор замка внутри каждой двери. Запертую дверь не открыть снаружи; если отпереть изнутри, когда машина под охраной, — завоет сирена.
 [/list]
 
 [b]Автозапуск и прогрев[/b]
 [list]
-[*]Одна кнопка на брелке. Брелок пиликает при отправке и играет мелодию, когда машина сообщает, что двигатель завёлся (или гудит, если не вышло).
-[*]Заводится только на нейтрали, с затянутым ручником и закрытым капотом.
-[*]До трёх попыток прокрутки. Работает, пока двигатель не прогреется до заданной температуры или не выйдет время, затем глушится.
-[*]Работает на симуляции игры: нет бензина, сел аккумулятор или изношен стартер — с брелка тоже не заведётся.
-[*]Чтобы поехать: снимите с охраны, сядьте, поверните ключ и удерживайте педаль тормоза 2 секунды. Аварийка мигнёт дважды — машина ваша. Поедете без подтверждения — двигатель заглохнет.
-[*][b]Сервопривод подсоса[/b] (по желанию): вытягивает подсос на холодную и отпускает по мере прогрева.
+[*]Одна кнопка на брелке. Брелок пиликает при отправке и играет мелодию, когда машина сообщает, что двигатель завёлся.
+[*]Заводится только на нейтрали, с затянутым ручником и закрытым капотом. До трёх попыток прокрутки.
+[*]Работает, пока двигатель не прогреется до заданной температуры или не выйдет время, затем глушится.
+[*]Чтобы поехать: снимите с охраны, сядьте, поверните ключ и удерживайте тормоз 2 секунды — аварийка мигнёт дважды, машина ваша. Поедете без подтверждения — двигатель заглохнет.
+[*]Сервопривод подсоса (по желанию) вытягивает подсос на холодную и отпускает по мере прогрева.
 [/list]
 
 [b]Прочее[/b]
 [list]
 [*]Всё сохраняется вместе с игрой.
 [*]Английский и русский языки.
-[*]Кнопка «Reset» в настройках мода — убрать всё и начать заново (старое состояние сохраняется в резервную копию).
+[*]Настройки: температура прогрева (40–80 °C) и предел времени (3–20 мин), клавиши и кнопка Reset, которая убирает всё и позволяет начать заново.
 [/list]
 
-[size=4][b]Цены в каталоге[/b][/size]
+[b]Цены в каталоге:[/b] сигнализация с автозапуском 1890 мк, активаторы центрального замка (пара) 640 мк, сервопривод подсоса 420 мк, доставка 35 мк.
+
+[b]Известные ограничения:[/b] только Сатсума; у деталей пока простые временные модели.
+[b]В планах:[/b] парктроник, бортовой компьютер и дополнительные приборы, нормальные 3D-модели.
+
+Баги и идеи пишите в комментариях. Если что-то сломалось, приложите, пожалуйста, файл [i]output_log.txt[/i].
+
+[size=5][b]Требования[/b][/size]
+
 [list]
-[*]Сигнализация VARTIJA 95 с автозапуском (блок, сирена, брелок, светодиод, 2 предохранителя) — 1890 мк
-[*]Активаторы центрального замка, пара — 640 мк
-[*]Автоматический сервопривод подсоса — 420 мк
-[*]Доставка — 35 мк
+[*][b]My Summer Car[/b] (актуальная версия в Steam)
+[*][b]MSCLoader[/b] 1.4.2 или новее
+[*]Других модов не требуется
+[*][b]Несовместим с Key System Extended[/b] — оба мода запирают двери и заводят двигатель. Удалите его перед установкой.
 [/list]
 
-[size=4][b]Управление[/b][/size] [i](меняется в настройках мода)[/i]
+[size=5][b]Благодарности[/b][/size]
+
 [list]
-[*][b]L[/b] — закрыть / поставить на охрану (а также повесить брелок на ключи, держа его в руке)
-[*][b]U[/b] — открыть / снять с охраны
-[*][b]H[/b] — автозапуск / остановка
-[*][b]Use[/b] (клавиша игры, по умолчанию F) — проложить провод инструментом wiring mess
-[*][b]ПКМ[/b] — читать каталог, открыть посылку, отключить провод
+[*][b]Amistech Games[/b] (Йоханнес и Каарина Рёйола) — за My Summer Car.
+[*]Команде [b]MSCLoader[/b] — за то, что моды для игры вообще возможны.
+[*][b]wolf_vx[/b] и [b]Lex[/b] — за ShowBoltSize, с которым мод дружит.
+[*]Всем, кто пользовался [b]Key System Extended[/b] и просил большего.
 [/list]
-
-[size=4][b]Установка[/b][/size]
-[list=1]
-[*]Установите [b]MSCLoader[/b] (собрано и проверено на 1.4.2).
-[*]Положите [b]CarSystemsExtended.dll[/b] в папку [i]Mods[/i].
-[*][b]Удалите Key System Extended[/b], если он стоит, — оба мода запирают двери и заводят двигатель.
-[/list]
-
-[size=4][b]Быстрый старт[/b][/size]
-[list=1]
-[*]Найдите брошюру Autotarvike рядом с журналом запчастей дома, посмотрите на неё и нажмите ПКМ.
-[*]Закажите сигнализацию (и замки / сервопривод, если нужно), отправьте конверт у Теймо.
-[*]На следующий день оплатите посылку на почте и откройте её.
-[*]Блок — под торпеду (7 мм), сирена — в моторный отсек (10 мм), предохранитель — в блок, светодиод — на торпеду у лобового стекла. Активаторы — внутрь дверей (6 мм), сервопривод — у карбюратора (8 мм).
-[*]Проводка через wiring mess: блок → ALARM FEED у блока предохранителей, затем каждое устройство → блок.
-[*]Если всё собрано правильно, сирена один раз чирикнет. Возьмите брелок в руку и нажмите L, чтобы повесить его на ключи. Готово.
-[/list]
-
-[size=4][b]Настройки[/b][/size]
-[list]
-[*]Язык: English / Русский
-[*]Автозапуск: прогрев до 40–80 °C (по умолчанию 60), остановка через 3–20 минут (по умолчанию 10)
-[*]Сброс мода (Reset Car Systems Extended)
-[*]Режим отладки: панель с состоянием всех систем, тестовые клавиши и редактор мест крепления
-[/list]
-
-[size=4][b]Известные ограничения[/b][/size]
-[list]
-[*]Только Сатсума.
-[*]У деталей пока простые временные модели.
-[/list]
-
-[size=4][b]В планах[/b][/size]
-[list]
-[*]Парктроник
-[*]Бортовой компьютер и дополнительные приборы
-[*]Нормальные 3D-модели деталей
-[/list]
-
-Баги и идеи — пишите в комментариях. Если что-то сломалось, приложите, пожалуйста, файл [i]output_log.txt[/i].
