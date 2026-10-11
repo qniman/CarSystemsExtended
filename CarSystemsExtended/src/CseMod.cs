@@ -15,9 +15,9 @@ namespace CSE
     {
         public override string ID => "CarSystemsExtended";
         public override string Name => "Car Systems Extended";
-        public override string Author => "CSE";
-        public override string Version => "0.1.0";
-        public override string Description => "Aftermarket car alarm, remote start and parking sensors for the Satsuma, 1995 style.";
+        public override string Author => "qniman";
+        public override string Version => "1.0.0";
+        public override string Description => "Aftermarket car alarm with central locking and remote start for the Satsuma, 1995 style. Successor of Key System Extended.";
 
         SettingsCheckBox debugMode;
         SettingsDropDownList language;
