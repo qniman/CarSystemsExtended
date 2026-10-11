@@ -28,6 +28,12 @@ namespace CSE.Shop
             Sfx.Game("HouseFoley", "mail_envelope_open", GameRefs.Camera.transform.position, 0.5f);
         }
 
+        /// New game session: forget a page left open when the player quit to the menu.
+        public static void ResetState()
+        {
+            IsOpen = false;
+        }
+
         public static void Close()
         {
             if (!IsOpen) return;
@@ -84,7 +90,7 @@ namespace CSE.Shop
 
             GUILayout.BeginArea(new Rect(rect.x + 24, rect.y + 16, rect.width - 48, rect.height - 32));
             GUILayout.Label("AUTOTARVIKE", title);
-            GUILayout.Label("Car accessories by mail  ·  Spring 1995  ·  Delivery to your post office", subtitle);
+            GUILayout.Label(L.T("cat_sub"), subtitle);
             GUILayout.Space(12);
 
             scroll = GUILayout.BeginScrollView(scroll);
@@ -102,7 +108,7 @@ namespace CSE.Shop
                 GUILayout.Label(e.Title, item);
                 GUILayout.Label(e.Blurb, blurb);
                 GUILayout.EndVertical();
-                GUILayout.Label(e.Price + " mk", price, GUILayout.Width(110));
+                GUILayout.Label(L.F("cat_price", e.Price), price, GUILayout.Width(110));
                 GUILayout.EndHorizontal();
                 GUILayout.Space(14);
             }
@@ -117,22 +123,20 @@ namespace CSE.Shop
                 total += e.Price;
             }
 
-            GUILayout.Label("Postage and handling " + MailOrder.Shipping + " mk. Payment cash on delivery " +
-                            "(postiennakko) when you collect the parcel. Post the order form in the post box " +
-                            "at your local shop; parcels arrive the next day.", small);
+            GUILayout.Label(L.F("cat_terms", MailOrder.Shipping), small);
             GUILayout.Space(6);
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label(picks.Count > 0 ? "TOTAL " + (total + MailOrder.Shipping) + " mk" : "Tick the items you want", item);
+            GUILayout.Label(picks.Count > 0 ? L.F("cat_total", total + MailOrder.Shipping) : L.T("cat_tick"), item);
             GUILayout.FlexibleSpace();
             GUI.enabled = picks.Count > 0;
-            if (GUILayout.Button("FILL IN ORDER FORM", button, GUILayout.Width(220), GUILayout.Height(34)))
+            if (GUILayout.Button(L.T("cat_fill"), button, GUILayout.Width(220), GUILayout.Height(34)))
             {
                 MailOrder.FillOrderForm(picks);
                 Close();
             }
             GUI.enabled = true;
-            if (GUILayout.Button("CLOSE", button, GUILayout.Width(100), GUILayout.Height(34))) Close();
+            if (GUILayout.Button(L.T("cat_close"), button, GUILayout.Width(120), GUILayout.Height(34))) Close();
             GUILayout.EndHorizontal();
             GUILayout.EndArea();
         }

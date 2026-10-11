@@ -138,7 +138,6 @@ namespace CSE.Debugging
             var anchor = PartManager.Anchor(m);
             if (cam == null || anchor == null) return false;
 
-            RaycastHit hit;
             bool found = false;
             var hits = Physics.RaycastAll(cam.transform.position, cam.transform.forward, 3f);
             System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
@@ -146,9 +145,8 @@ namespace CSE.Debugging
             {
                 // skip triggers and our own ghost/parts
                 if (h.collider.isTrigger || h.collider.GetComponentInParent<Part>() != null) continue;
-                hit = h;
                 found = true;
-                Vector3 p = hit.point;
+                Vector3 p = h.point;
                 var car = GameRefs.Car.transform;
                 if (m.ParentPart != null) m.Offset = anchor.InverseTransformPoint(p);
                 else if (m.AttachToRef) m.Offset = car.InverseTransformDirection(p - anchor.position);

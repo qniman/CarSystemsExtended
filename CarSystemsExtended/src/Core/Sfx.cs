@@ -141,8 +141,8 @@ namespace CSE.Core
             get
             {
                 if (fobSource != null) return fobSource;
+                // Lives in the game scene, so it goes away with it (no pager trill in the menu).
                 var go = new GameObject("cse_fob_audio");
-                UnityEngine.Object.DontDestroyOnLoad(go);
                 fobSource = go.AddComponent<AudioSource>();
                 fobSource.playOnAwake = false;
                 fobSource.spatialBlend = 0f;

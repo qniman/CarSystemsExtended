@@ -18,6 +18,8 @@ namespace CSE.Core
 
         public static Interactable Hovered { get; private set; }
 
+        static readonly Comparison<RaycastHit> ByDistance = (a, b) => a.distance.CompareTo(b.distance);
+
         public static void Update()
         {
             Hovered = null;
@@ -26,7 +28,7 @@ namespace CSE.Core
 
             var hits = Physics.RaycastAll(cam.transform.position, cam.transform.forward, Reach);
             if (hits.Length == 0) return;
-            Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            Array.Sort(hits, ByDistance);
 
             foreach (var hit in hits)
             {

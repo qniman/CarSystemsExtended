@@ -15,7 +15,7 @@ namespace CSE.Core
         static FsmBool guiAssemble, guiDisassemble, guiUse, guiBuy;
         static FsmBool playerInMenu, playerStop;
         static FsmString guiInteraction;
-        static PlayMakerFSM batteryData;
+        static FsmFloat batteryCharge;
 
         public static bool Init()
         {
@@ -38,7 +38,8 @@ namespace CSE.Core
             guiInteraction = g.FindFsmString("GUIinteraction");
 
             var battery = GameObject.Find("Database/PartsStatus/Battery");
-            if (battery != null) batteryData = battery.GetPlayMaker("Data");
+            var batteryData = battery != null ? battery.GetPlayMaker("Data") : null;
+            batteryCharge = batteryData != null ? batteryData.FsmVariables.FindFsmFloat("Charge") : null;
 
             if (Car == null) ModConsole.Error("[CSE] SATSUMA not found");
             if (ItemPivot == null) ModConsole.Error("[CSE] ItemPivot not found");
@@ -84,19 +85,12 @@ namespace CSE.Core
 
         public static float BatteryCharge
         {
-            get
-            {
-                if (batteryData == null) return 0f;
-                var f = batteryData.FsmVariables.FindFsmFloat("Charge");
-                return f != null ? f.Value : 0f;
-            }
+            get { return batteryCharge != null ? batteryCharge.Value : 0f; }
         }
 
         public static void DrainBattery(float amount)
         {
-            if (batteryData == null) return;
-            var f = batteryData.FsmVariables.FindFsmFloat("Charge");
-            if (f != null) f.Value = Mathf.Max(0f, f.Value - amount);
+            if (batteryCharge != null) batteryCharge.Value = Mathf.Max(0f, batteryCharge.Value - amount);
         }
 
         public static Transform FindInCar(string path)

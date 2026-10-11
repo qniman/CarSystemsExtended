@@ -31,7 +31,7 @@ namespace CSE.Parts
 
         public static Part Create(PartDef def, string uid)
         {
-            var go = new GameObject(def.Name + "(itemx)");
+            var go = new GameObject(DisplayName(def));
             go.layer = LayerMask.NameToLayer("Parts");
 
             var col = go.AddComponent<BoxCollider>();
@@ -59,6 +59,18 @@ namespace CSE.Parts
 
             part.MakeLoose();
             return part;
+        }
+
+        /// The game shows a loose item's object name up to the bracket, so the name is the label.
+        static string DisplayName(PartDef def)
+        {
+            return L.PartName(def) + "(itemx)";
+        }
+
+        /// Re-applies the name after a language change.
+        public void Rename()
+        {
+            gameObject.name = DisplayName(Def);
         }
 
         // ---------------------------------------------------------------- state
@@ -121,7 +133,13 @@ namespace CSE.Parts
             MountIndex = mountIndex;
 
             var rb = GetComponent<Rigidbody>();
-            if (rb != null) Destroy(rb);
+            if (rb != null)
+            {
+                // Destroy is deferred to the end of the frame; keep it from being simulated as a
+                // loose body inside the car until then.
+                rb.isKinematic = true;
+                Destroy(rb);
+            }
             gameObject.tag = "Untagged";
             transform.parent = parent;
             transform.localPosition = pos;
@@ -210,7 +228,7 @@ namespace CSE.Parts
             // Wires are laid with the wiring mess (AlarmWiring); pulling a plug needs no tool.
             if (Def.Wired && WireConnected)
             {
-                Gui.Interaction("DISCONNECT WIRE (RMB)");
+                Gui.Interaction(L.T("disconnect_wire"));
                 if (Input.GetMouseButtonDown(1))
                 {
                     WireConnected = false;
@@ -221,7 +239,7 @@ namespace CSE.Parts
             }
             if (Def == PartCatalog.AlarmUnit && AlarmWiring.PowerConnected)
             {
-                Gui.Interaction("DISCONNECT POWER (RMB)");
+                Gui.Interaction(L.T("disconnect_power"));
                 if (Input.GetMouseButtonDown(1))
                 {
                     AlarmWiring.PowerConnected = false;

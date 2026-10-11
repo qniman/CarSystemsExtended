@@ -6,9 +6,9 @@ using UnityEngine;
 
 namespace CSE.Systems
 {
-    // Central locking through the lock actuators. A locked door has its game "Use" FSM disabled,
-    // so it cannot be opened from outside. From inside the player can pull the lock knob, which
-    // unlocks that door (and sets off the alarm if it is armed).
+    // Central locking through the lock actuators. A locked door has the LMB action of its game
+    // "Use" FSM disabled, so clicking it does nothing from outside. From inside the player can pull
+    // the lock knob, which unlocks that door (and sets off the alarm if it is armed).
     public static class DoorLocks
     {
         class Door
@@ -201,7 +201,7 @@ namespace CSE.Systems
 
                 if (PlayerInCabin())
                 {
-                    Gui.Interaction("UNLOCK DOOR");
+                    Gui.Interaction(L.T("unlock_door"));
                     if (Input.GetMouseButtonDown(0))
                     {
                         SetLocked(d, false, false);
@@ -210,7 +210,7 @@ namespace CSE.Systems
                 }
                 else
                 {
-                    Gui.Interaction("LOCKED");
+                    Gui.Interaction(L.T("locked"));
                     if (Input.GetMouseButtonDown(0))
                         Sfx.Game("CarFoley", "dash_button", d.T.position, 0.8f);
                 }

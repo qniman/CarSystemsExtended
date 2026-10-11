@@ -186,7 +186,7 @@ namespace CSE.Parts
             {
                 // Device wires are unplugged at the device end.
                 foreach (var p in Parts)
-                    if (p != null && p.WireConnected) return "UNPLUG " + p.Def.Name.ToUpper() + " FIRST";
+                    if (p != null && p.WireConnected) return L.F("unplug_first", L.PartLabel(p.Def));
             }
             return null;
         }
@@ -204,9 +204,16 @@ namespace CSE.Parts
 
         // ---------------------------------------------------------------- frame
 
+        public static void RenameAll()
+        {
+            foreach (var p in Parts) if (p != null) p.Rename();
+        }
+
+        static readonly System.Predicate<Part> isGone = p => p == null;
+
         public static void Tick()
         {
-            Parts.RemoveAll(p => p == null);
+            Parts.RemoveAll(isGone);
             for (int i = Parts.Count - 1; i >= 0; i--) Parts[i].Tick();
             if (Look.Hovered != null) Look.Hovered.OnHover();
         }

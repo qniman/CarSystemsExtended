@@ -47,6 +47,9 @@ namespace CSE.Systems
             maxMinutesSetting = maxMinutes;
             Current = Phase.Off;
             LastResult = null;
+            commandPending = false;
+            reply = Reply.None;
+            chokeHeld = false;
 
             var st = GameRefs.FindInCar("CarSimulation/Car/Starter");
             starter = st != null ? st.gameObject.GetPlayMaker("Starter") : null;
@@ -89,9 +92,13 @@ namespace CSE.Systems
                 chokeLevel = lvl != null ? lvl.FsmVariables.FindFsmFloat("ChokeLevel") : null;
             }
 
-            if (starter == null || electrics == null || drivetrain == null)
+            available = starter != null && starterAcc != null && starting != null && shutOff != null &&
+                        electrics != null && drivetrain != null;
+            if (!available)
                 ModConsole.Error("[CSE] Remote start: starter/electrics/drivetrain not found, remote start disabled");
         }
+
+        static bool available;
 
         public static bool Active
         {
@@ -134,7 +141,7 @@ namespace CSE.Systems
 
         public static void OnButton()
         {
-            if (!AlarmSystem.FobWorks || starter == null) return;
+            if (!AlarmSystem.FobWorks || !available) return;
             Sfx.FobSend();
             // Out of power the car simply never answers.
             if (!AlarmSystem.Powered) return;
@@ -267,7 +274,7 @@ namespace CSE.Systems
             if (drivetrain.gear != drivetrain.neutral) { Stall("put in gear without the brake"); return; }
             if (Time.time > takeoverUntil) { Stall("no brake confirmation"); return; }
 
-            ShowHint("HOLD THE BRAKE PEDAL");
+            ShowHint(L.T("hold_brake"));
             if (!BrakeHeld) { brakeSince = -1f; return; }
             if (brakeSince < 0f) brakeSince = Time.time;
             if (Time.time - brakeSince < BrakeHoldTime) return;
@@ -390,6 +397,10 @@ namespace CSE.Systems
             }
         }
 
+        /// Set while the servo has the choke pulled, so it is always let off again even if the
+        /// servo is unplugged mid-run.
+        static bool chokeHeld;
+
         /// Full choke when cold, easing off to none by 45 C.
         static void UpdateChoke()
         {
@@ -399,7 +410,10 @@ namespace CSE.Systems
 
         static void SetChoke(float level)
         {
-            if (!ServoReady || chokeLevel == null) return;
+            if (chokeLevel == null) return;
+            // Pulling needs a working servo; letting off is done whenever we pulled earlier.
+            if (level > 0f ? !ServoReady : !chokeHeld) return;
+            chokeHeld = level > 0f;
             chokeLevel.Value = level;
             if (chokeKnob != null) chokeKnob.Value = level;
             if (chokeKnobPos != null) chokeKnobPos.Value = -0.03f * level;

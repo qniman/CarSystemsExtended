@@ -151,7 +151,7 @@ namespace CSE.Systems
         static bool FobHeld(Part fob)
         {
             string key = lockKey != null ? lockKey.GetKeyValue.ToString() : "L";
-            Gui.Interaction("PRESS " + key.ToUpper() + " TO PUT ON SATSUMA KEYS");
+            Gui.Interaction(L.F("fob_attach", key.ToUpperInvariant()));
             if (lockKey != null && lockKey.GetKeybindDown())
             {
                 FobOnKeys = true;

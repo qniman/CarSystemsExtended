@@ -10,8 +10,17 @@ namespace CSE.Shop
     public class CatalogEntry
     {
         public string Id;
-        public string Title;
-        public string Blurb;
+
+        public string Title
+        {
+            get { return L.T("kit_" + Id + "_title"); }
+        }
+
+        public string Blurb
+        {
+            get { return L.T("kit_" + Id + "_blurb"); }
+        }
+
         public int Price;
         public PartDef[] Contents;
     }
@@ -29,26 +38,18 @@ namespace CSE.Shop
             new CatalogEntry
             {
                 Id = "alarm",
-                Title = "VARTIJA 95 car alarm with remote start",
-                Blurb = "Alarm unit, siren, remote control, dash LED, 2 x 15A fuse. Shock sensor, door, bonnet and " +
-                        "ignition guard. Warms up your engine on cold mornings at the press of a button!",
                 Price = 1890,
                 Contents = PartCatalog.Kits.Alarm,
             },
             new CatalogEntry
             {
                 Id = "locks",
-                Title = "Central locking actuators (pair)",
-                Blurb = "Electric door lock actuators for two doors. Operated by the VARTIJA 95 unit.",
                 Price = 640,
                 Contents = PartCatalog.Kits.DoorLocks,
             },
             new CatalogEntry
             {
                 Id = "choke",
-                Title = "Automatic choke servo",
-                Blurb = "Pulls the choke for remote starts and lets it off as the engine warms. " +
-                        "For carburettor cars. Requires VARTIJA 95.",
                 Price = 420,
                 Contents = PartCatalog.Kits.ChokeServo,
             },
@@ -128,7 +129,7 @@ namespace CSE.Shop
 
         static void BrochureHover(Part p)
         {
-            Gui.Interaction("READ CATALOG (RMB)");
+            Gui.Interaction(L.T("read_catalog"));
             if (Input.GetMouseButtonDown(1)) CatalogUI.Open();
         }
 
@@ -156,11 +157,11 @@ namespace CSE.Shop
             if (postBox == null) return true;
             if (Vector3.Distance(env.transform.position, postBox.position) > PostBoxReach)
             {
-                Gui.Interaction("ORDER: POST BOX AT TEIMO'S SHOP");
+                Gui.Interaction(L.T("post_where"));
                 return true;
             }
 
-            Gui.Interaction("POST ORDER");
+            Gui.Interaction(L.T("post_order"));
             if (Input.GetMouseButtonDown(0))
             {
                 var order = ParseEnvelope(env.Data);
@@ -193,20 +194,19 @@ namespace CSE.Shop
             for (int i = Pending.Count - 1; i >= 0; i--)
             {
                 if (--Pending[i].DaysLeft > 0) continue;
-                Deliver(Pending[i]);
-                Pending.RemoveAt(i);
+                if (Deliver(Pending[i])) Pending.RemoveAt(i);
             }
         }
 
         public static void DeliverAllNow()
         {
-            foreach (var o in Pending) Deliver(o);
-            Pending.Clear();
+            Pending.RemoveAll(o => Deliver(o));
         }
 
-        static void Deliver(Order o)
+        /// Puts the parcel on the counter. False (order kept) if the post office is missing.
+        static bool Deliver(Order o)
         {
-            if (postOffice == null) return;
+            if (postOffice == null) return false;
             // Line parcels up next to each other on the post office side of the shop.
             int waiting = 0;
             foreach (var p in PartManager.Parts)
@@ -217,6 +217,7 @@ namespace CSE.Shop
             parcel.Data = o.Kits;
             parcel.SetForSale(o.Price);
             ModConsole.Print("[CSE] Parcel waiting at the post office: " + o.Kits + ", " + o.Price + " mk");
+            return true;
         }
 
         // ---------------------------------------------------------------- parcel
@@ -226,7 +227,7 @@ namespace CSE.Shop
             if (parcel.Price > 0)
             {
                 Gui.Buy();
-                Gui.Interaction("PARCEL, CASH ON DELIVERY " + parcel.Price + " MK");
+                Gui.Interaction(L.F("parcel_cod", parcel.Price));
                 if (!Input.GetMouseButtonDown(0)) return;
                 if (money == null || money.Value < parcel.Price)
                 {
@@ -240,7 +241,7 @@ namespace CSE.Shop
                 return;
             }
 
-            Gui.Interaction("OPEN PARCEL (RMB)");
+            Gui.Interaction(L.T("open_parcel"));
             if (!Input.GetMouseButtonDown(1)) return;
 
             Vector3 origin = parcel.transform.position + Vector3.up * 0.15f;

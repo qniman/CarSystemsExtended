@@ -20,6 +20,8 @@ namespace CSE
         public override string Description => "Aftermarket car alarm, remote start and parking sensors for the Satsuma, 1995 style.";
 
         SettingsCheckBox debugMode;
+        SettingsDropDownList language;
+        int frameErrors;
         SettingsKeybind lockKey, unlockKey, startKey;
         SettingsSliderInt warmTemp, warmMinutes;
         SettingsKeybind spawnKitKey, spawnLocksKey, spawnServoKey, deliverKey, mountEditorKey, testSirenKey;
@@ -28,6 +30,7 @@ namespace CSE
         public override void ModSetup()
         {
             SetupFunction(Setup.ModSettings, CreateSettings);
+            SetupFunction(Setup.ModSettingsLoaded, ApplyLanguage);
             SetupFunction(Setup.OnLoad, OnLoad);
             SetupFunction(Setup.OnSave, OnSave);
             SetupFunction(Setup.Update, OnUpdate);
@@ -36,6 +39,8 @@ namespace CSE
 
         void CreateSettings()
         {
+            language = Settings.AddDropDownList("cse_language", "Language / Язык", L.LanguageNames, 0, ApplyLanguage);
+
             lockKey = Keybind.Add("cse_lock", "Alarm remote: lock / arm", KeyCode.L);
             unlockKey = Keybind.Add("cse_unlock", "Alarm remote: unlock / disarm", KeyCode.U);
             startKey = Keybind.Add("cse_remote_start", "Alarm remote: remote start / stop", KeyCode.H);
@@ -69,6 +74,8 @@ namespace CSE
             try
             {
                 if (!GameRefs.Init()) return;
+                CatalogUI.ResetState();
+                frameErrors = 0;
                 ToolHook.Init();
                 PartManager.Reset();
                 AlarmWiring.Init();
@@ -139,8 +146,10 @@ namespace CSE
             }
             catch (Exception e)
             {
-                ModConsole.Error("[CSE] " + e);
-                ready = false; // stop spamming the console every frame; reload the game to retry
+                // Keep running (one broken system should not take the rest down), but do not
+                // flood the console if the same error repeats every frame.
+                if (++frameErrors <= 3) ModConsole.Error("[CSE] " + e);
+                if (frameErrors == 3) ModConsole.Error("[CSE] Further errors suppressed until the next load");
             }
         }
 
@@ -149,6 +158,13 @@ namespace CSE
             if (!ready) return;
             if (Debug) DebugOverlay.Draw();
             CatalogUI.Draw();
+        }
+
+        void ApplyLanguage()
+        {
+            if (language == null) return;
+            L.Current = language.GetSelectedItemIndex() == 1 ? L.Lang.Russian : L.Lang.English;
+            if (ready) PartManager.RenameAll();
         }
 
         // ---------------------------------------------------------------- reset

@@ -97,12 +97,12 @@ namespace CSE.Electrics
 
         static IEnumerable<Point> Points()
         {
-            yield return new Point { T = feed, Label = "ALARM FEED (FUSE BOX)" };
+            yield return new Point { T = feed, Label = L.T("feed") };
             foreach (var p in PartManager.Parts)
             {
                 if (p == null || !p.Installed) continue;
                 if (p.Def == PartCatalog.AlarmUnit || p.Def.Wired)
-                    yield return new Point { Part = p, T = p.Plug, Label = p.Def.Name.ToUpper() };
+                    yield return new Point { Part = p, T = p.Plug, Label = L.PartLabel(p.Def) };
             }
         }
 
@@ -122,6 +122,11 @@ namespace CSE.Electrics
             foreach (var s in stubs) s.Update();
 
             if (tool == null || !tool.gameObject.activeInHierarchy) return;
+            // The tool must be in the player's hands (or right in front of them), not just lying
+            // next to a connector somewhere, and near the car at all.
+            var cam = GameRefs.Camera;
+            if (cam == null || Vector3.Distance(tool.position, cam.transform.position) > 1.5f) return;
+            if (Vector3.Distance(tool.position, GameRefs.Car.transform.position) > 4f) return;
 
             bool found = false;
             Point near = default(Point);
@@ -140,7 +145,7 @@ namespace CSE.Electrics
 
             Gui.Assemble();
             if (!pendingSet) Gui.Interaction(near.Label);
-            else if (pending.Same(near)) Gui.Interaction("CANCEL WIRE");
+            else if (pending.Same(near)) Gui.Interaction(L.T("cancel_wire"));
             else Gui.Interaction(pending.Label + "  >  " + near.Label);
 
             if (GameRefs.UseButtonDown) OnUse(near);
