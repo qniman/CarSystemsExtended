@@ -276,7 +276,7 @@ namespace CSE.Systems
             LastResult = "handed over to driver";
             ShowHint("");
             SetChoke(0f);
-            Flasher.Flash(2);
+            Flasher.GameHazards(2);
         }
 
         public static void Tick()

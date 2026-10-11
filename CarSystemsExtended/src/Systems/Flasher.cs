@@ -18,6 +18,9 @@ namespace CSE.Systems
         static bool lit;
         static float nextToggle;
 
+        static FsmBool gameHazards;
+        static float gameHazardsOffAt = -1f;
+
         public static void Init()
         {
             left = Clone("Electricity/PowerON/Indicators/Left");
@@ -25,6 +28,23 @@ namespace CSE.Systems
             togglesLeft = 0;
             continuous = false;
             lit = false;
+            gameHazardsOffAt = -1f;
+
+            var ts = GameRefs.FindInCar("Dashboard/TurnSignals");
+            var blinkers = ts != null ? ts.gameObject.GetPlayMaker("Blinkers") : null;
+            gameHazards = blinkers != null ? blinkers.FsmVariables.FindFsmBool("BlinkerHazards") : null;
+            if (gameHazards == null) ModConsole.Warning("[CSE] Blinkers FSM not found, hazard confirmation off");
+        }
+
+        /// Runs the car's real hazard lights (relay click, dash lamps, all four indicators) for
+        /// a couple of blinks, without touching the hazard switch. Needs the ignition on.
+        public static void GameHazards(int blinks)
+        {
+            if (gameHazards == null || gameHazards.Value) return; // already on: leave them be
+            gameHazards.Value = true;
+            // The game blinks 0.4 s on / 0.4 s off and only reads the flag when entering each
+            // phase, so clear it during the last "on": the following "off" then ends the cycle.
+            gameHazardsOffAt = Time.time + blinks * 0.8f - 0.6f;
         }
 
         static GameObject Clone(string path)
@@ -63,6 +83,12 @@ namespace CSE.Systems
 
         public static void Tick()
         {
+            if (gameHazardsOffAt >= 0f && Time.time >= gameHazardsOffAt)
+            {
+                gameHazardsOffAt = -1f;
+                if (gameHazards != null) gameHazards.Value = false;
+            }
+
             if (!continuous && togglesLeft <= 0) return;
             if (Time.time < nextToggle) return;
             nextToggle = Time.time + Interval;
