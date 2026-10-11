@@ -186,6 +186,28 @@ namespace CSE.Core
             FobSource.PlayOneShot(fobFail);
         }
 
+        static AudioSource fobAlarmSource;
+
+        /// Pager trill on the fob while the car's alarm is going off.
+        public static void SetFobAlarm(bool on)
+        {
+            if (!on)
+            {
+                if (fobAlarmSource != null && fobAlarmSource.isPlaying) fobAlarmSource.Stop();
+                return;
+            }
+            if (fobAlarmSource == null)
+            {
+                fobAlarmSource = FobSource.gameObject.AddComponent<AudioSource>();
+                fobAlarmSource.playOnAwake = false;
+                fobAlarmSource.spatialBlend = 0f;
+                fobAlarmSource.volume = 0.3f;
+                fobAlarmSource.loop = true;
+                fobAlarmSource.clip = Melody("cse_fob_alarm", 3136, 0.1f, 2349, 0.1f, 3136, 0.1f, 2349, 0.1f, 0, 0.3f);
+            }
+            if (!fobAlarmSource.isPlaying) fobAlarmSource.Play();
+        }
+
         public static void FobStop()
         {
             if (fobStop == null) fobStop = Melody("cse_fob_stop", 3136, 0.08f, 0, 0.03f, 2637, 0.08f, 0, 0.03f, 2093, 0.14f);

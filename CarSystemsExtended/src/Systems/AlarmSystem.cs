@@ -17,7 +17,10 @@ namespace CSE.Systems
     {
         public enum Mode { Disarmed, Armed, Triggered }
 
-        const float FobRange = 50f;
+        // The fob's tiny transmitter reaches the car from about 60 m; the car's transmitter
+        // reaches the fob (pager, remote start replies) from about 140 m.
+        const float FobRange = 60f;
+        const float CarTransmitterRange = 140f;
         const float ArmGrace = 3f;          // sensors ignored right after arming
         const float SirenTime = 30f;
         const float ArmedDrainPerSec = 0.0002f;
@@ -168,6 +171,20 @@ namespace CSE.Systems
                 if (KeyInIgnition) return false;
                 var cam = GameRefs.Camera;
                 return cam != null && Vector3.Distance(cam.transform.position, GameRefs.Car.transform.position) <= FobRange;
+            }
+        }
+
+        /// The fob can hear the car: on the keyring, keys with the player or in the car,
+        /// within reach of the car's stronger transmitter.
+        public static bool FobHears
+        {
+            get
+            {
+                if (!FobOnKeys) return false;
+                if (KeyInIgnition) return true; // the fob is in the car with the keys
+                if (playerKeySatsuma == null || playerKeySatsuma.Value != 1) return false;
+                var cam = GameRefs.Camera;
+                return cam != null && Vector3.Distance(cam.transform.position, GameRefs.Car.transform.position) <= CarTransmitterRange;
             }
         }
 
@@ -343,6 +360,8 @@ namespace CSE.Systems
             else Flasher.SetContinuous(false);
 
             UpdateSiren();
+            // Pager: the fob beeps along while the car is going off and the fob can hear it.
+            Sfx.SetFobAlarm(Powered && Current == Mode.Triggered && FobHears);
             Flasher.Tick();
             UpdateLeds();
         }

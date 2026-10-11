@@ -16,7 +16,7 @@ namespace CSE.Systems
     // engine keeps running on the key.
     public static class RemoteStart
     {
-        public enum Phase { Off, Preparing, Cranking, Pausing, Running }
+        public enum Phase { Off, Preparing, Cranking, Pausing, Running, Takeover }
 
         const int MaxAttempts = 3;
         const float CrankTime = 2.5f;
@@ -37,6 +37,7 @@ namespace CSE.Systems
         static FsmFloat chokeKnob, chokeKnobPos, chokeLevel;
         static Transform chokeKnobMesh;
         static Drivetrain drivetrain;
+        static CarController carController;
 
         static SettingsSliderInt targetTempSetting, maxMinutesSetting;
 
@@ -74,6 +75,7 @@ namespace CSE.Systems
 
             engineTemp = FsmVariables.GlobalVariables.FindFsmFloat("EngineTemp");
             drivetrain = GameRefs.Car.GetComponent<Drivetrain>();
+            carController = GameRefs.Car.GetComponent<CarController>();
 
             var ch = GameRefs.FindInCar("Dashboard/pivot_dashboard/dashboard(Clone)/pivot_meters/dashboard meters(Clone)/Knobs/ButtonsDash/Choke");
             if (ch != null)
@@ -164,8 +166,8 @@ namespace CSE.Systems
             }
             if (reply != Reply.None && Time.time >= replyAt)
             {
-                // The fob only hears the car while in range.
-                if (AlarmSystem.FobWorks)
+                // The car's transmitter reaches further than the fob's.
+                if (AlarmSystem.FobHears)
                 {
                     if (reply == Reply.Ok) Sfx.FobOk();
                     else if (reply == Reply.Fail) Sfx.FobFail();
@@ -220,17 +222,90 @@ namespace CSE.Systems
 
         // ---------------------------------------------------------------- frame
 
+        // Takeover: the driver turns the key while the engine runs remotely, then has to hold the
+        // brake pedal for a moment to confirm, like real remote starters. Hazards blink twice and
+        // the car is theirs. Driving off without confirming, or waiting too long, stalls it.
+        const float TakeoverWindow = 20f;
+        const float BrakeHoldTime = 2f;
+
+        static float takeoverUntil;
+        static float brakeSince = -1f;
+        static FsmString subtitle;
+
+        static bool BrakeHeld
+        {
+            get
+            {
+                if (carController == null) return false;
+                return carController.brakeKey || carController.brakeInput > 0.3f || carController.brake > 0.3f;
+            }
+        }
+
+        static void ShowHint(string text)
+        {
+            if (subtitle == null) subtitle = FsmVariables.GlobalVariables.FindFsmString("GUIsubtitle");
+            if (subtitle != null) subtitle.Value = text;
+        }
+
+        /// Kills the engine but leaves the ignition alone: the key owns it now.
+        static void Stall(string reason)
+        {
+            Current = Phase.Off;
+            LastResult = reason;
+            ShowHint("");
+            ModConsole.Print("[CSE] Remote start: " + reason);
+            if (starting != null) starting.Value = false;
+            if (shutOff != null) shutOff.Value = true;
+            SetChoke(0f);
+        }
+
+        static void TickTakeover()
+        {
+            if (!KeyOn) { Current = Phase.Off; LastResult = "key turned off"; ShowHint(""); return; }
+            if (!EngineRunning) { Current = Phase.Off; LastResult = "stalled during takeover"; ShowHint(""); return; }
+            if (AlarmSystem.Current == AlarmSystem.Mode.Triggered) { Stall("alarm triggered"); return; }
+            if (drivetrain.gear != drivetrain.neutral) { Stall("put in gear without the brake"); return; }
+            if (Time.time > takeoverUntil) { Stall("no brake confirmation"); return; }
+
+            ShowHint("HOLD THE BRAKE PEDAL");
+            if (!BrakeHeld) { brakeSince = -1f; return; }
+            if (brakeSince < 0f) brakeSince = Time.time;
+            if (Time.time - brakeSince < BrakeHoldTime) return;
+
+            Current = Phase.Off;
+            LastResult = "handed over to driver";
+            ShowHint("");
+            SetChoke(0f);
+            Flasher.Flash(2);
+        }
+
         public static void Tick()
         {
             TickRadio();
             if (!Active) return;
 
-            // Driver turned the key: hand over, the engine keeps running on the key.
+            if (Current == Phase.Takeover)
+            {
+                TickTakeover();
+                return;
+            }
+
             if (KeyOn)
             {
-                LastResult = "handed over to key";
-                Current = Phase.Off;
-                if (starting != null) starting.Value = false;
+                if (Current == Phase.Running && EngineRunning)
+                {
+                    // Keep the engine running and wait for the brake confirmation.
+                    Current = Phase.Takeover;
+                    takeoverUntil = Time.time + TakeoverWindow;
+                    brakeSince = -1f;
+                }
+                else
+                {
+                    // Key turned mid-start: give up, the key starts the car the normal way.
+                    Current = Phase.Off;
+                    LastResult = "key turned during start";
+                    if (starting != null) starting.Value = false;
+                }
                 return;
             }
 

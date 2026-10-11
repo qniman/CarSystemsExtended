@@ -59,7 +59,9 @@ namespace CSE.Parts
                 {
                     Label = "engine bay",
                     RefPath = "MiscParts/pivot_battery",
-                    Offset = new Vector3(0.17f, 0.1f, 0.12f),
+                    // placed in game with the mount editor
+                    Offset = new Vector3(-0.06f, 0.104f, -0.513f),
+                    Euler = new Vector3(-90f, 0f, 180f),
                 },
             },
             Bolts = new[]
@@ -114,7 +116,9 @@ namespace CSE.Parts
                 new MountDef
                 {
                     Label = "dash top by the windscreen",
-                    Offset = new Vector3(-0.45f, 0.38f, 0.55f),
+                    // placed in game with the mount editor
+                    Offset = new Vector3(-0.364f, 0.45f, 0.64f),
+                    Euler = new Vector3(0f, -5f, 0f),
                 },
             },
             Bolts = new[]
@@ -166,14 +170,15 @@ namespace CSE.Parts
                     Label = "left door",
                     RefPath = "Body/pivot_door_left/door left(Clone)",
                     AttachToRef = true,
-                    Offset = new Vector3(0.06f, -0.2f, -0.9f),
+                    // placed in game with the mount editor
+                    Offset = new Vector3(0.044f, 0.07f, -0.89f),
                 },
                 new MountDef
                 {
                     Label = "right door",
                     RefPath = "Body/pivot_door_right/door right(Clone)",
                     AttachToRef = true,
-                    Offset = new Vector3(-0.06f, -0.2f, -0.9f),
+                    Offset = new Vector3(-0.044f, 0.08f, -0.888f),
                     Euler = new Vector3(0, 180, 0),
                 },
             },
@@ -207,7 +212,9 @@ namespace CSE.Parts
                 {
                     Label = "by the carburettor",
                     RefPath = "Chassis/sub frame(xxxxx)/CarMotorPivot/block(Clone)/pivot_cylinder head/cylinder head(Clone)/pivot_carburator",
-                    Offset = new Vector3(0.15f, 0.05f, -0.1f),
+                    // placed in game with the mount editor
+                    Offset = new Vector3(0.122f, 0.072f, -0.217f),
+                    Euler = new Vector3(-90f, 180f, 0f),
                 },
             },
             Bolts = new[]
