@@ -41,6 +41,61 @@ namespace CSE.Core
             get { return beep ?? (beep = Sweep("cse_beep", 0.08f, 2700f, 2700f, 0.5f)); }
         }
 
+        static AudioClip wail, thunk;
+
+        /// Classic rising/falling siren, loops seamlessly (2 s period).
+        public static AudioClip Wail
+        {
+            get
+            {
+                if (wail != null) return wail;
+                int n = Rate * 2;
+                var data = new float[n];
+                double phase = 0;
+                for (int i = 0; i < n; i++)
+                {
+                    // triangle sweep 650 -> 1500 -> 650 Hz
+                    float t = (float)i / n;
+                    float tri = t < 0.5f ? t * 2f : 2f - t * 2f;
+                    double f = 650 + 850 * tri;
+                    phase += 2 * Math.PI * f / Rate;
+                    data[i] = (float)(Math.Sin(phase) + Math.Sin(3 * phase) / 3) * 0.55f;
+                }
+                wail = AudioClip.Create("cse_wail", n, 1, Rate, false);
+                wail.SetData(data, 0);
+                return wail;
+            }
+        }
+
+        /// Dull mechanical thunk of a lock actuator.
+        public static AudioClip Thunk
+        {
+            get
+            {
+                if (thunk != null) return thunk;
+                int n = Rate / 12;
+                var data = new float[n];
+                var rnd = new System.Random(7);
+                for (int i = 0; i < n; i++)
+                {
+                    float t = (float)i / n;
+                    float env = Mathf.Exp(-t * 9f);
+                    float body = Mathf.Sin(2 * Mathf.PI * 140f * i / Rate);
+                    float noise = (float)(rnd.NextDouble() * 2 - 1) * Mathf.Exp(-t * 30f);
+                    data[i] = (body * 0.7f + noise * 0.5f) * env;
+                }
+                thunk = AudioClip.Create("cse_thunk", n, 1, Rate, false);
+                thunk.SetData(data, 0);
+                return thunk;
+            }
+        }
+
+        /// Plays a clip once at a world position.
+        public static void At(AudioClip clip, Vector3 pos, float volume = 1f)
+        {
+            AudioSource.PlayClipAtPoint(clip, pos, volume);
+        }
+
         /// Square-ish tone sweeping linearly from f0 to f1, with short fade in/out to avoid clicks.
         public static AudioClip Sweep(string name, float seconds, float f0, float f1, float gain)
         {

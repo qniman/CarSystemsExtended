@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CSE.Electrics;
 using CSE.Parts;
+using CSE.Systems;
 using MSCLoader;
 using UnityEngine;
 
@@ -14,6 +15,8 @@ namespace CSE.Save
         public int Version = 1;
         public List<PartSave> Parts = new List<PartSave>();
         public bool AlarmPower;
+        public bool AlarmArmed;
+        public bool FobOnKeys;
     }
 
     public class PartSave
@@ -21,6 +24,7 @@ namespace CSE.Save
         public string Def;
         public string Uid;
         public bool Installed;
+        public int Mount; // 0 in saves from before multi-mount parts, which is correct for them
         public float[] Pos;
         public float[] Rot;
         public int[] Bolts;
@@ -34,7 +38,12 @@ namespace CSE.Save
 
         public static void Save(Mod mod)
         {
-            var data = new SaveData { AlarmPower = AlarmWiring.PowerConnected };
+            var data = new SaveData
+            {
+                AlarmPower = AlarmWiring.PowerConnected,
+                AlarmArmed = AlarmSystem.Current != AlarmSystem.Mode.Disarmed,
+                FobOnKeys = AlarmSystem.FobOnKeys,
+            };
             foreach (var p in PartManager.Parts)
             {
                 if (p == null) continue;
@@ -43,6 +52,7 @@ namespace CSE.Save
                     Def = p.Def.Id,
                     Uid = p.Uid,
                     Installed = p.Installed,
+                    Mount = p.MountIndex,
                     Wire = p.WireConnected,
                     Damaged = p.Damaged,
                     Pos = V(p.transform.position),
@@ -90,7 +100,7 @@ namespace CSE.Save
                 foreach (var kv in spawned)
                 {
                     if (kv.Key.Def != def || !kv.Value.Installed) continue;
-                    if (kv.Key.Install(kv.Value.Bolts, true))
+                    if (kv.Key.Install(kv.Value.Mount, kv.Value.Bolts, true))
                         kv.Key.WireConnected = kv.Value.Wire;
                     else
                         ModConsole.Warning("[CSE] Could not reinstall " + kv.Key.Uid + ", left loose");
@@ -99,6 +109,7 @@ namespace CSE.Save
 
             AlarmWiring.PowerConnected = data.AlarmPower;
             AlarmWiring.Refresh();
+            AlarmSystem.Restore(data.AlarmArmed, data.FobOnKeys);
         }
 
         static float[] V(Vector3 v) { return new[] { v.x, v.y, v.z }; }

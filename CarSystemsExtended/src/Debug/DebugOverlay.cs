@@ -27,12 +27,14 @@ namespace CSE.Debugging
             sb.AppendLine("wrench raw " + GameRefs.WrenchRaw.ToString("0.###") + " = " + GameRefs.WrenchMm + "mm" +
                           (GameRefs.HasRatchet ? " (ratchet)" : ""));
             sb.AppendLine("battery charge " + GameRefs.BatteryCharge.ToString("0.0"));
-            sb.AppendLine("alarm: " + AlarmUnit.Diagnose() + (AlarmUnit.SirenReady ? ", siren ready" : ""));
-            sb.AppendLine("power lead: " + AlarmWiring.PowerConnected);
+            sb.AppendLine("alarm power: " + AlarmSystem.Diagnose());
+            sb.AppendLine("alarm: " + AlarmSystem.Current + (AlarmSystem.FobOnKeys ? ", fob on keys" : ", no fob") +
+                          (AlarmSystem.LastTrigger != null ? ", last trigger: " + AlarmSystem.LastTrigger : ""));
+            sb.AppendLine("doors (L=locked O=open c=closed): " + DoorLocks.StatusText);
             foreach (var p in PartManager.Parts)
             {
                 if (p == null) continue;
-                sb.Append("  ").Append(p.Uid).Append(p.Installed ? " installed" : " loose");
+                sb.Append("  ").Append(p.Uid).Append(p.Installed ? " installed@" + p.MountIndex : " loose");
                 if (p.Bolts.Count > 0)
                 {
                     sb.Append(" bolts ");
@@ -42,7 +44,12 @@ namespace CSE.Debugging
                 if (p.Damaged) sb.Append(" DAMAGED");
                 sb.AppendLine();
             }
-            if (MountEditor.Active) sb.AppendLine("MOUNT EDITOR ON (numpad)");
+            if (MountEditor.Active)
+            {
+                sb.AppendLine("MOUNT EDITOR: " + MountEditor.Status);
+                sb.AppendLine("  arrows/PgUp/PgDn move, , . rotate (Ctrl/Alt axis), Shift fine");
+                sb.AppendLine("  Insert = to crosshair, Home = next, End = save");
+            }
 
             string text = sb.ToString();
             var size = style.CalcSize(new GUIContent(text));

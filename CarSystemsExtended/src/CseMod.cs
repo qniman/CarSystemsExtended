@@ -19,7 +19,8 @@ namespace CSE
         public override string Description => "Aftermarket car alarm, remote start and parking sensors for the Satsuma, 1995 style.";
 
         SettingsCheckBox debugMode;
-        SettingsKeybind spawnKitKey, mountEditorKey, testSirenKey;
+        SettingsKeybind lockKey, unlockKey;
+        SettingsKeybind spawnKitKey, spawnLocksKey, mountEditorKey, testSirenKey;
         bool ready;
 
         public override void ModSetup()
@@ -33,9 +34,13 @@ namespace CSE
 
         void CreateSettings()
         {
+            lockKey = Keybind.Add("cse_lock", "Alarm remote: lock / arm", KeyCode.L);
+            unlockKey = Keybind.Add("cse_unlock", "Alarm remote: unlock / disarm", KeyCode.U);
+
             Settings.AddHeader("Debug");
             debugMode = Settings.AddCheckBox("cse_debug", "Debug mode (overlay, test keys, mount editor)", false, null);
             spawnKitKey = Keybind.Add("cse_spawn_alarm", "Debug: spawn alarm kit in front of you", KeyCode.F7);
+            spawnLocksKey = Keybind.Add("cse_spawn_locks", "Debug: spawn door lock kit in front of you", KeyCode.F4);
             mountEditorKey = Keybind.Add("cse_mount_editor", "Debug: toggle mount editor", KeyCode.F6);
             testSirenKey = Keybind.Add("cse_test_siren", "Debug: test siren chirp", KeyCode.F5);
         }
@@ -53,7 +58,9 @@ namespace CSE
                 ToolHook.Init();
                 PartManager.Reset();
                 AlarmWiring.Init();
-                AlarmUnit.Init();
+                Flasher.Init();
+                DoorLocks.Init();
+                AlarmSystem.Init(lockKey);
                 MountEditor.Init(ModLoader.GetModSettingsFolder(this));
                 SaveSystem.Load(this);
                 ready = true;
@@ -86,13 +93,18 @@ namespace CSE
                 Look.Update();
                 PartManager.Tick();
                 AlarmWiring.Tick();
-                AlarmUnit.Tick();
+                DoorLocks.Tick();
+
+                if (lockKey.GetKeybindDown()) AlarmSystem.OnLockPressed();
+                if (unlockKey.GetKeybindDown()) AlarmSystem.OnUnlockPressed();
+                AlarmSystem.Tick();
 
                 if (Debug)
                 {
                     if (spawnKitKey.GetKeybindDown()) SpawnKit(PartCatalog.Kits.Alarm);
+                    if (spawnLocksKey.GetKeybindDown()) SpawnKit(PartCatalog.Kits.DoorLocks);
                     if (mountEditorKey.GetKeybindDown()) MountEditor.Toggle();
-                    if (testSirenKey.GetKeybindDown()) AlarmUnit.Chirp(2);
+                    if (testSirenKey.GetKeybindDown()) AlarmSystem.Chirp(2);
                 }
                 MountEditor.Tick();
                 Gui.Apply();

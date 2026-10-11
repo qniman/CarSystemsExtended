@@ -15,11 +15,14 @@ namespace CSE.Parts
         public bool WireConnected;
         /// Blown fuse, broken device. Meaning depends on the part.
         public bool Damaged;
+        /// Which of the definition's mounts the part sits on (valid while installed).
+        public int MountIndex = -1;
         public readonly List<Bolt> Bolts = new List<Bolt>();
         public Transform Plug;
 
         Transform boltRoot;
         float pendingInstall = -1f;
+        int pendingMount = -1;
 
         public static Part Create(PartDef def, string uid)
         {
@@ -91,12 +94,13 @@ namespace CSE.Parts
         }
 
         /// Snaps the part onto its mount. Returns false if the mount is not available.
-        public bool Install(int[] boltStages = null, bool silent = false)
+        public bool Install(int mountIndex, int[] boltStages = null, bool silent = false)
         {
             Transform parent;
             Vector3 pos;
             Quaternion rot;
-            if (!PartManager.ResolveMount(this, out parent, out pos, out rot)) return false;
+            if (!PartManager.ResolveMount(this, mountIndex, out parent, out pos, out rot)) return false;
+            MountIndex = mountIndex;
 
             var rb = GetComponent<Rigidbody>();
             if (rb != null) Destroy(rb);
@@ -118,6 +122,7 @@ namespace CSE.Parts
         public void Uninstall(bool silent = false)
         {
             Installed = false;
+            MountIndex = -1;
             WireConnected = false;
             foreach (var b in Bolts) b.SetStage(0);
             boltRoot.gameObject.SetActive(false);
@@ -133,7 +138,7 @@ namespace CSE.Parts
             Transform parent;
             Vector3 pos;
             Quaternion rot;
-            if (!Installed || !PartManager.ResolveMount(this, out parent, out pos, out rot)) return;
+            if (!Installed || !PartManager.ResolveMount(this, MountIndex, out parent, out pos, out rot)) return;
             transform.parent = parent;
             transform.localPosition = pos;
             transform.localRotation = rot;
@@ -156,17 +161,23 @@ namespace CSE.Parts
                 if (Time.time >= pendingInstall)
                 {
                     pendingInstall = -1f;
-                    Install();
+                    Install(pendingMount);
                 }
                 return;
             }
 
             if (Installed || !GameRefs.IsHeld(gameObject)) return;
-            if (!PartManager.CanAssembleHere(this)) return;
+            if (Def.OnHeld != null && Def.OnHeld(this)) return;
+
+            int mount = PartManager.AssemblyCandidate(this);
+            if (mount < 0) return;
 
             Gui.Assemble();
             if (Input.GetMouseButtonDown(0))
+            {
                 pendingInstall = Time.time + 0.05f;
+                pendingMount = mount;
+            }
         }
 
         public override void OnHover()
