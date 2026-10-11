@@ -29,13 +29,26 @@ namespace CSE.Parts
         float pendingInstall = -1f;
         int pendingMount = -1;
 
+        // ---- loose-item physics safety (see TickLoosePhysics)
+        const float MinColliderSize = 0.02f;
+        const float FreezeDistance = 40f;   // parked beyond this from the player
+        const float WakeDistance = 35f;     // hysteresis so it does not flicker at the edge
+        const float RescueDrop = 4f;        // fell this far below where it last rested
+
+        Rigidbody body;
+        bool frozen;
+        float settleUntil;
+        Vector3 restPos;
+        bool hasRest;
+
         public static Part Create(PartDef def, string uid)
         {
             var go = new GameObject(DisplayName(def));
             go.layer = LayerMask.NameToLayer("Parts");
 
+            // Paper-thin boxes tunnel through floors; give every collider some body.
             var col = go.AddComponent<BoxCollider>();
-            col.size = def.ColliderSize;
+            col.size = Vector3.Max(def.ColliderSize, Vector3.one * MinColliderSize);
             col.center = def.ColliderCenter;
 
             var part = go.AddComponent<Part>();
@@ -58,6 +71,8 @@ namespace CSE.Parts
             part.boltRoot.gameObject.SetActive(false);
 
             part.MakeLoose();
+            // Spawned or loaded parts wait a moment (and for ground under them) before falling.
+            part.FreezeUntilSettled();
             return part;
         }
 
@@ -118,6 +133,13 @@ namespace CSE.Parts
             if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
             rb.mass = Def.Mass;
             rb.isKinematic = false;
+            // Small, light and often thrown: discrete collision lets them slip through floors.
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            rb.interpolation = RigidbodyInterpolation.Interpolate;
+            body = rb;
+            frozen = false;
+            restPos = transform.position;
+            hasRest = true;
             gameObject.MakePickable();
             gameObject.tag = "PART";
             gameObject.layer = LayerMask.NameToLayer("Parts");
@@ -140,6 +162,8 @@ namespace CSE.Parts
                 rb.isKinematic = true;
                 Destroy(rb);
             }
+            body = null;
+            frozen = false;
             gameObject.tag = "Untagged";
             transform.parent = parent;
             transform.localPosition = pos;
@@ -202,7 +226,9 @@ namespace CSE.Parts
                 return;
             }
 
-            if (Installed || !GameRefs.IsHeld(gameObject)) return;
+            if (Installed) return;
+            TickLoosePhysics();
+            if (!GameRefs.IsHeld(gameObject)) return;
             if (Def.OnHeld != null && Def.OnHeld(this)) return;
 
             int mount = PartManager.AssemblyCandidate(this);
@@ -213,6 +239,82 @@ namespace CSE.Parts
             {
                 pendingInstall = Time.time + 0.05f;
                 pendingMount = mount;
+            }
+        }
+
+        // ---------------------------------------------------------------- falling through floors
+        //
+        // Three things make loose items vanish under the map in MSC: thin colliders tunnelling,
+        // floors that are not loaded yet (savegame load, store LOD switched off far away), and
+        // nothing to catch them when it happens. So a loose part
+        //   * stays kinematic for a moment after spawning and until there is ground under it,
+        //   * is parked (kinematic) while the player is far away and the world may unload,
+        //   * is put back where it last rested if it drops far below that spot.
+
+        void FreezeUntilSettled()
+        {
+            settleUntil = Time.time + 1.5f;
+            SetFrozen(true);
+        }
+
+        void SetFrozen(bool on)
+        {
+            frozen = on;
+            if (body == null) return;
+            body.isKinematic = on;
+            if (!on) body.WakeUp();
+        }
+
+        bool GroundBelow()
+        {
+            foreach (var h in Physics.RaycastAll(transform.position + Vector3.up * 0.05f, Vector3.down, 3f))
+            {
+                if (h.collider.isTrigger || h.collider.transform.IsChildOf(transform)) continue;
+                return true;
+            }
+            return false;
+        }
+
+        void TickLoosePhysics()
+        {
+            if (body == null || Price > 0) return; // for sale: frozen on the counter by design
+
+            if (GameRefs.IsHeld(gameObject))
+            {
+                // In hand the game moves it; the hand is a safe spot to fall back to.
+                if (frozen) SetFrozen(false);
+                restPos = transform.position;
+                hasRest = true;
+                return;
+            }
+
+            var cam = GameRefs.Camera;
+            float dist = cam != null ? Vector3.Distance(cam.transform.position, transform.position) : 0f;
+
+            if (frozen)
+            {
+                if (Time.time >= settleUntil && dist < WakeDistance && GroundBelow()) SetFrozen(false);
+                return;
+            }
+
+            if (dist > FreezeDistance)
+            {
+                SetFrozen(true);
+                return;
+            }
+
+            if (body.velocity.sqrMagnitude < 0.01f)
+            {
+                restPos = transform.position;
+                hasRest = true;
+            }
+            else if (hasRest && transform.position.y < restPos.y - RescueDrop && body.velocity.y < -2f)
+            {
+                ModConsole.Log("[CSE] " + Uid + " fell through the floor, put back");
+                body.velocity = Vector3.zero;
+                body.angularVelocity = Vector3.zero;
+                transform.position = restPos + Vector3.up * 0.2f;
+                FreezeUntilSettled();
             }
         }
 
