@@ -16,7 +16,7 @@ namespace CSE
         public override string ID => "CarSystemsExtended";
         public override string Name => "Car Systems Extended";
         public override string Author => "qniman";
-        public override string Version => "1.0.0";
+        public override string Version => "1.0.1";
         static byte[] icon;
 
         /// Shown in the MSCLoader mod list; embedded in the DLL (Assets/icon.png).
