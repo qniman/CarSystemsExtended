@@ -17,6 +17,25 @@ namespace CSE
         public override string Name => "Car Systems Extended";
         public override string Author => "qniman";
         public override string Version => "1.0.0";
+        static byte[] icon;
+
+        /// Shown in the MSCLoader mod list; embedded in the DLL (Assets/icon.png).
+        public override byte[] Icon
+        {
+            get
+            {
+                if (icon != null) return icon;
+                using (var s = typeof(CseMod).Assembly.GetManifestResourceStream("CSE.icon.png"))
+                {
+                    if (s == null) return null;
+                    icon = new byte[s.Length];
+                    s.Read(icon, 0, icon.Length);
+                }
+                return icon;
+            }
+            set { }
+        }
+
         public override string Description => "Aftermarket car alarm with central locking and remote start for the Satsuma, 1995 style. Successor of Key System Extended.";
 
         SettingsCheckBox debugMode;

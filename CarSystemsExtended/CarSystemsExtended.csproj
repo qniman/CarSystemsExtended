@@ -27,6 +27,9 @@
     <Reference Include="cInput"><HintPath>$(Managed)\cInput.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Assembly-CSharp"><HintPath>$(Managed)\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\icon.png" LogicalName="CSE.icon.png" />
+  </ItemGroup>
   <Target Name="CopyToMods" AfterTargets="Build">
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GameDir)\Mods" />
   </Target>
