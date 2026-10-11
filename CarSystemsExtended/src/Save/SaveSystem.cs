@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CSE.Electrics;
 using CSE.Parts;
+using CSE.Shop;
 using CSE.Systems;
 using MSCLoader;
 using UnityEngine;
@@ -17,6 +18,8 @@ namespace CSE.Save
         public bool AlarmPower;
         public bool AlarmArmed;
         public bool FobOnKeys;
+        public bool BrochureGiven;
+        public List<MailOrder.Order> Orders = new List<MailOrder.Order>();
     }
 
     public class PartSave
@@ -30,6 +33,8 @@ namespace CSE.Save
         public int[] Bolts;
         public bool Wire;
         public bool Damaged;
+        public string Data;
+        public int Price;
     }
 
     public static class SaveSystem
@@ -43,6 +48,8 @@ namespace CSE.Save
                 AlarmPower = AlarmWiring.PowerConnected,
                 AlarmArmed = AlarmSystem.Current != AlarmSystem.Mode.Disarmed,
                 FobOnKeys = AlarmSystem.FobOnKeys,
+                BrochureGiven = MailOrder.BrochureGiven,
+                Orders = new List<MailOrder.Order>(MailOrder.Pending),
             };
             foreach (var p in PartManager.Parts)
             {
@@ -55,6 +62,8 @@ namespace CSE.Save
                     Mount = p.MountIndex,
                     Wire = p.WireConnected,
                     Damaged = p.Damaged,
+                    Data = p.Data,
+                    Price = p.Price,
                     Pos = V(p.transform.position),
                     Rot = Q(p.transform.rotation),
                     Bolts = new int[p.Bolts.Count],
@@ -92,6 +101,8 @@ namespace CSE.Save
                 }
                 var part = PartManager.Spawn(def, ToV(s.Pos), ToQ(s.Rot), s.Uid);
                 part.Damaged = s.Damaged;
+                part.Data = s.Data;
+                if (s.Price > 0) part.SetForSale(s.Price);
                 spawned.Add(new KeyValuePair<Part, PartSave>(part, s));
             }
 
@@ -110,6 +121,8 @@ namespace CSE.Save
             AlarmWiring.PowerConnected = data.AlarmPower;
             AlarmWiring.Refresh();
             AlarmSystem.Restore(data.AlarmArmed, data.FobOnKeys);
+            MailOrder.BrochureGiven = data.BrochureGiven;
+            if (data.Orders != null) MailOrder.Pending.AddRange(data.Orders);
         }
 
         static float[] V(Vector3 v) { return new[] { v.x, v.y, v.z }; }

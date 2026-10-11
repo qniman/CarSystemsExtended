@@ -17,6 +17,10 @@ namespace CSE.Parts
         public bool Damaged;
         /// Which of the definition's mounts the part sits on (valid while installed).
         public int MountIndex = -1;
+        /// Free-form payload (order contents of an envelope or parcel).
+        public string Data;
+        /// Unpaid price in marks; while above zero the item sits on the counter and cannot be taken.
+        public int Price { get; private set; }
         public readonly List<Bolt> Bolts = new List<Bolt>();
         public Transform Plug;
 
@@ -80,6 +84,19 @@ namespace CSE.Parts
         public bool Secured
         {
             get { return Installed && AllBoltsTight; }
+        }
+
+        /// Puts the item up for sale: frozen in place and not pickable until paid.
+        public void SetForSale(int price)
+        {
+            Price = price;
+            var rb = GetComponent<Rigidbody>();
+            if (price > 0)
+            {
+                if (rb != null) rb.isKinematic = true;
+                gameObject.tag = "Untagged";
+            }
+            else MakeLoose();
         }
 
         void MakeLoose()
@@ -182,7 +199,12 @@ namespace CSE.Parts
 
         public override void OnHover()
         {
-            if (!Installed) return; // the game itself handles picking up loose items
+            if (!Installed)
+            {
+                // The game itself handles picking up loose items; we only add extras.
+                if (Def.OnLooseHover != null) Def.OnLooseHover(this);
+                return;
+            }
 
             if (Def.Wired && PartManager.AlarmUnitInstalled)
             {

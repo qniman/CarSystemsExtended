@@ -5,12 +5,13 @@ namespace CSE.Core
     // so the game's own hints are never overwritten.
     public static class Gui
     {
-        static bool assemble, disassemble, use;
+        static bool assemble, disassemble, use, buy;
         static string text;
         static bool wroteLastFrame;
 
         public static void Assemble() { assemble = true; }
         public static void Disassemble() { disassemble = true; }
+        public static void Buy() { buy = true; }
 
         public static void Interaction(string t)
         {
@@ -20,11 +21,11 @@ namespace CSE.Core
 
         public static void Apply()
         {
-            bool any = assemble || disassemble || use;
+            bool any = assemble || disassemble || use || buy;
             if (any || wroteLastFrame)
-                GameRefs.SetGui(assemble, disassemble, use, text);
+                GameRefs.SetGui(assemble, disassemble, use, buy, text);
             wroteLastFrame = any;
-            assemble = disassemble = use = false;
+            assemble = disassemble = use = buy = false;
             text = null;
         }
     }

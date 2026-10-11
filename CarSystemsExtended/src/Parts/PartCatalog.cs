@@ -195,8 +195,60 @@ namespace CSE.Parts
             },
         };
 
+        // ---------------------------------------------------------------- mail order items
+        // Behaviour (reading, posting, opening) is attached by Shop.MailOrder.Init.
+
+        static readonly Color Paper = new Color(0.93f, 0.91f, 0.84f);
+        static readonly Color Cardboard = new Color(0.62f, 0.47f, 0.3f);
+
+        public static readonly PartDef Brochure = new PartDef
+        {
+            Id = "cse_brochure",
+            Name = "autotarvike catalog",
+            Mass = 0.2f,
+            ColliderSize = new Vector3(0.21f, 0.01f, 0.297f),
+            Build = t =>
+            {
+                Shapes.Add(t, PrimitiveType.Cube, Vector3.zero, new Vector3(0.21f, 0.006f, 0.297f), Paper);
+                // red title band and a "car" blob on the cover
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, 0.0035f, 0.1f), new Vector3(0.2f, 0.001f, 0.06f), new Color(0.75f, 0.1f, 0.08f));
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, 0.0035f, -0.03f), new Vector3(0.14f, 0.001f, 0.07f), new Color(0.2f, 0.3f, 0.55f));
+            },
+        };
+
+        public static readonly PartDef Envelope = new PartDef
+        {
+            Id = "cse_envelope",
+            Name = "order envelope",
+            Mass = 0.05f,
+            ColliderSize = new Vector3(0.22f, 0.01f, 0.11f),
+            Build = t =>
+            {
+                Shapes.Add(t, PrimitiveType.Cube, Vector3.zero, new Vector3(0.22f, 0.004f, 0.11f), Paper);
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0.085f, 0.0025f, 0.03f), new Vector3(0.025f, 0.001f, 0.03f), new Color(0.75f, 0.1f, 0.08f));
+            },
+        };
+
+        public static readonly PartDef Parcel = new PartDef
+        {
+            Id = "cse_parcel",
+            Name = "parcel",
+            Mass = 3f,
+            ColliderSize = new Vector3(0.4f, 0.22f, 0.3f),
+            Build = t =>
+            {
+                Shapes.Add(t, PrimitiveType.Cube, Vector3.zero, new Vector3(0.4f, 0.22f, 0.3f), Cardboard);
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, 0.111f, 0f), new Vector3(0.05f, 0.001f, 0.302f), new Color(0.8f, 0.75f, 0.6f));
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0.08f, 0.111f, 0.07f), new Vector3(0.12f, 0.001f, 0.08f), Paper);
+            },
+        };
+
         // Parents before children: load order depends on it.
-        public static readonly PartDef[] All = { AlarmUnit, Siren, Fuse, Fob, LockActuator, ChokeServo };
+        public static readonly PartDef[] All =
+        {
+            AlarmUnit, Siren, Fuse, Fob, LockActuator, ChokeServo,
+            Brochure, Envelope, Parcel,
+        };
 
         public static class Kits
         {

@@ -12,7 +12,8 @@ namespace CSE.Core
 
         static FsmFloat toolWrenchSize;
         static FsmBool playerHasRatchet;
-        static FsmBool guiAssemble, guiDisassemble, guiUse;
+        static FsmBool guiAssemble, guiDisassemble, guiUse, guiBuy;
+        static FsmBool playerInMenu, playerStop;
         static FsmString guiInteraction;
         static PlayMakerFSM batteryData;
 
@@ -31,6 +32,9 @@ namespace CSE.Core
             guiAssemble = g.FindFsmBool("GUIassemble");
             guiDisassemble = g.FindFsmBool("GUIdisassemble");
             guiUse = g.FindFsmBool("GUIuse");
+            guiBuy = g.FindFsmBool("GUIbuy");
+            playerInMenu = g.FindFsmBool("PlayerInMenu");
+            playerStop = g.FindFsmBool("PlayerStop");
             guiInteraction = g.FindFsmString("GUIinteraction");
 
             var battery = GameObject.Find("Database/PartsStatus/Battery");
@@ -99,10 +103,29 @@ namespace CSE.Core
             return null;
         }
 
+        // ---- menu mode: the game shows the cursor and stops mouse look while PlayerInMenu is
+        // set (PLAYER "Crouch" FSM), and stops movement while PlayerStop is set.
+
+        static bool stopBeforeMenu;
+
+        public static void EnterMenu()
+        {
+            stopBeforeMenu = playerStop != null && playerStop.Value;
+            if (playerInMenu != null) playerInMenu.Value = true;
+            if (playerStop != null) playerStop.Value = true;
+        }
+
+        public static void ExitMenu()
+        {
+            if (playerInMenu != null) playerInMenu.Value = false;
+            if (playerStop != null) playerStop.Value = stopBeforeMenu;
+        }
+
         // ---- GUI flags, written through Gui so we only clear what we set
 
-        internal static void SetGui(bool assemble, bool disassemble, bool use, string text)
+        internal static void SetGui(bool assemble, bool disassemble, bool use, bool buy, string text)
         {
+            if (guiBuy != null) guiBuy.Value = buy;
             if (guiAssemble != null) guiAssemble.Value = assemble;
             if (guiDisassemble != null) guiDisassemble.Value = disassemble;
             if (guiUse != null) guiUse.Value = use;

@@ -57,5 +57,7 @@ namespace CSE.Parts
         public Action<Transform> Build;
         /// Called every frame while the player holds the part. Return true to skip assembly.
         public Func<Part, bool> OnHeld;
+        /// Called every frame while the player looks at the part lying loose (not held).
+        public Action<Part> OnLooseHover;
     }
 }

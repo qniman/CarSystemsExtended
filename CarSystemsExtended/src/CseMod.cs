@@ -4,6 +4,7 @@ using CSE.Debugging;
 using CSE.Electrics;
 using CSE.Parts;
 using CSE.Save;
+using CSE.Shop;
 using CSE.Systems;
 using MSCLoader;
 using UnityEngine;
@@ -21,7 +22,7 @@ namespace CSE
         SettingsCheckBox debugMode;
         SettingsKeybind lockKey, unlockKey, startKey;
         SettingsSliderInt warmTemp, warmMinutes;
-        SettingsKeybind spawnKitKey, spawnLocksKey, spawnServoKey, mountEditorKey, testSirenKey;
+        SettingsKeybind spawnKitKey, spawnLocksKey, spawnServoKey, deliverKey, mountEditorKey, testSirenKey;
         bool ready;
 
         public override void ModSetup()
@@ -48,6 +49,7 @@ namespace CSE
             spawnKitKey = Keybind.Add("cse_spawn_alarm", "Debug: spawn alarm kit in front of you", KeyCode.F7);
             spawnLocksKey = Keybind.Add("cse_spawn_locks", "Debug: spawn door lock kit in front of you", KeyCode.F4);
             spawnServoKey = Keybind.Add("cse_spawn_servo", "Debug: spawn choke servo in front of you", KeyCode.F3);
+            deliverKey = Keybind.Add("cse_deliver_now", "Debug: deliver posted orders now", KeyCode.F2);
             mountEditorKey = Keybind.Add("cse_mount_editor", "Debug: toggle mount editor", KeyCode.F6);
             testSirenKey = Keybind.Add("cse_test_siren", "Debug: test siren chirp", KeyCode.F5);
         }
@@ -69,8 +71,10 @@ namespace CSE
                 DoorLocks.Init();
                 AlarmSystem.Init(lockKey);
                 RemoteStart.Init(warmTemp, warmMinutes);
+                MailOrder.Init();
                 MountEditor.Init(ModLoader.GetModSettingsFolder(this));
                 SaveSystem.Load(this);
+                MailOrder.AfterLoad();
                 ready = true;
                 ModConsole.Print("[CSE] Car Systems Extended " + Version + " loaded, " + PartManager.Parts.Count + " parts restored");
             }
@@ -98,19 +102,27 @@ namespace CSE
             if (!ready) return;
             try
             {
-                Look.Update();
-                PartManager.Tick();
-                AlarmWiring.Tick();
-                DoorLocks.Tick();
+                // While the catalog is open, clicks belong to the page, not the world.
+                bool reading = CatalogUI.IsOpen;
+                if (reading) CatalogUI.Tick();
+                else
+                {
+                    Look.Update();
+                    PartManager.Tick();
+                    DoorLocks.Tick();
+                    if (lockKey.GetKeybindDown()) AlarmSystem.OnLockPressed();
+                    if (unlockKey.GetKeybindDown()) AlarmSystem.OnUnlockPressed();
+                    if (startKey.GetKeybindDown()) RemoteStart.OnButton();
+                }
 
-                if (lockKey.GetKeybindDown()) AlarmSystem.OnLockPressed();
-                if (unlockKey.GetKeybindDown()) AlarmSystem.OnUnlockPressed();
-                if (startKey.GetKeybindDown()) RemoteStart.OnButton();
+                AlarmWiring.Tick();
                 AlarmSystem.Tick();
                 RemoteStart.Tick();
+                MailOrder.Tick();
 
-                if (Debug)
+                if (Debug && !reading)
                 {
+                    if (deliverKey.GetKeybindDown()) MailOrder.DeliverAllNow();
                     if (spawnKitKey.GetKeybindDown()) SpawnKit(PartCatalog.Kits.Alarm);
                     if (spawnLocksKey.GetKeybindDown()) SpawnKit(PartCatalog.Kits.DoorLocks);
                     if (spawnServoKey.GetKeybindDown()) SpawnKit(PartCatalog.Kits.ChokeServo);
@@ -129,7 +141,9 @@ namespace CSE
 
         void OnGui()
         {
-            if (ready && Debug) DebugOverlay.Draw();
+            if (!ready) return;
+            if (Debug) DebugOverlay.Draw();
+            CatalogUI.Draw();
         }
 
         static void SpawnKit(PartDef[] kit)
