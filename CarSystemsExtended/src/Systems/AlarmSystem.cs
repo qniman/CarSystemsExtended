@@ -77,6 +77,19 @@ namespace CSE.Systems
             if (keyInLock == null) ModConsole.Warning("[CSE] Ignition key mesh not found");
         }
 
+        /// Back to factory state (mod reset): quiet, disarmed, fob off the keys.
+        public static void ResetState()
+        {
+            StopSiren();
+            Flasher.SetContinuous(false);
+            Current = Mode.Disarmed;
+            FobOnKeys = false;
+            LastTrigger = null;
+            AlarmMemory = false;
+            pendingRelock = false;
+            errorUntil = 0f;
+        }
+
         /// Restores the saved mode; the doors are re-locked once power is confirmed.
         public static void Restore(bool armed, bool fobOnKeys)
         {

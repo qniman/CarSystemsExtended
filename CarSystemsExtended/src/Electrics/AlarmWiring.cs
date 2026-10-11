@@ -76,6 +76,14 @@ namespace CSE.Electrics
             if (fusebox == null) ModConsole.Warning("[CSE] fuse box point not found, feed placed by estimate");
         }
 
+        /// Mod reset: no wires anywhere.
+        public static void ResetState()
+        {
+            PowerConnected = false;
+            pendingSet = false;
+            Refresh();
+        }
+
         /// Battery in place, plus terminal on, not flat.
         public static bool BatteryOk
         {

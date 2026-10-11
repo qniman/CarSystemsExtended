@@ -49,6 +49,14 @@ namespace CSE.Parts
             if (part != null) Object.Destroy(part.gameObject);
         }
 
+        /// Destroys every part the mod has spawned (mod reset).
+        public static void RemoveAll()
+        {
+            foreach (var p in Parts)
+                if (p != null) Object.Destroy(p.gameObject);
+            Parts.Clear();
+        }
+
         public static Part FindInstalled(string defId)
         {
             foreach (var p in Parts)

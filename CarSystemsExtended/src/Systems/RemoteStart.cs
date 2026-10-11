@@ -140,6 +140,15 @@ namespace CSE.Systems
             commandAt = Time.time + SignalDelay;
         }
 
+        /// Mod reset: stop the engine if we were running it and forget pending radio traffic.
+        public static void ResetState()
+        {
+            Stop("mod reset");
+            commandPending = false;
+            reply = Reply.None;
+            LastResult = null;
+        }
+
         static void SendReply(Reply r)
         {
             reply = r;

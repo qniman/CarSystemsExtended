@@ -127,6 +127,13 @@ namespace CSE.Systems
             }
         }
 
+        /// Unlocks everything regardless of actuators (mod reset).
+        public static void ForceUnlockAll()
+        {
+            foreach (var d in doors)
+                if (d.Locked) SetLocked(d, false, true);
+        }
+
         public static void UnlockAll(bool silent = false)
         {
             foreach (var d in doors)

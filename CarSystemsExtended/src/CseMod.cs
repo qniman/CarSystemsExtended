@@ -44,6 +44,11 @@ namespace CSE
             warmTemp = Settings.AddSlider("cse_warm_temp", "Warm up until engine reaches (C)", 40, 80, 60, null, null);
             warmMinutes = Settings.AddSlider("cse_warm_minutes", "Stop after at most (minutes)", 3, 20, 10, null, null);
 
+            Settings.AddHeader("Reset");
+            Settings.AddText("Removes every part, wire, fob and pending order of this mod and starts over. " +
+                             "Your game save is not touched. Works in the main menu and in game.");
+            Settings.AddButton("Reset Car Systems Extended", AskReset);
+
             Settings.AddHeader("Debug");
             debugMode = Settings.AddCheckBox("cse_debug", "Debug mode (overlay, test keys, mount editor)", false, null);
             spawnKitKey = Keybind.Add("cse_spawn_alarm", "Debug: spawn alarm kit in front of you", KeyCode.F7);
@@ -144,6 +149,53 @@ namespace CSE
             if (!ready) return;
             if (Debug) DebugOverlay.Draw();
             CatalogUI.Draw();
+        }
+
+        // ---------------------------------------------------------------- reset
+
+        void AskReset()
+        {
+            ModUI.ShowYesNoMessage(
+                "Remove every Car Systems Extended part, wire and pending order and start over?\n" +
+                "The old state is kept as a backup file.",
+                "Reset Car Systems Extended", DoReset);
+        }
+
+        void DoReset()
+        {
+            try
+            {
+                // Keep the previous state as a backup either way.
+                string folder = ModLoader.GetModSettingsFolder(this);
+                string file = System.IO.Path.Combine(folder, "cse_save");
+                if (System.IO.File.Exists(file))
+                {
+                    string backup = file + ".bak-" + DateTime.Now.ToString("yyyyMMdd-HHmmss");
+                    System.IO.File.Copy(file, backup, true);
+                    System.IO.File.Delete(file);
+                }
+
+                if (ready)
+                {
+                    // In game: undo everything live, then write the empty state right away so
+                    // quitting without saving does not bring the old parts back.
+                    CatalogUI.Close();
+                    RemoteStart.ResetState();
+                    DoorLocks.ForceUnlockAll();
+                    AlarmSystem.ResetState();
+                    PartManager.RemoveAll();
+                    AlarmWiring.ResetState();
+                    MailOrder.Pending.Clear();
+                    MailOrder.BrochureGiven = false;
+                    MailOrder.AfterLoad(); // hands out a fresh brochure
+                    SaveSystem.Save(this);
+                }
+                ModConsole.Print("[CSE] Mod reset" + (ready ? " in game" : ", takes effect when you load the game"));
+            }
+            catch (Exception e)
+            {
+                ModConsole.Error("[CSE] Reset failed: " + e);
+            }
         }
 
         static void SpawnKit(PartDef[] kit)
