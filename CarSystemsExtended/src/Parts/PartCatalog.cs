@@ -243,10 +243,10 @@ namespace CSE.Parts
             ColliderSize = new Vector3(0.21f, 0.01f, 0.297f),
             Build = t =>
             {
+                // A4 stack of pages with the spring 1995 cover printed on top.
                 Shapes.Add(t, PrimitiveType.Cube, Vector3.zero, new Vector3(0.21f, 0.006f, 0.297f), Paper);
-                // red title band and a "car" blob on the cover
-                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, 0.0035f, 0.1f), new Vector3(0.2f, 0.001f, 0.06f), new Color(0.75f, 0.1f, 0.08f));
-                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, 0.0035f, -0.03f), new Vector3(0.14f, 0.001f, 0.07f), new Color(0.2f, 0.3f, 0.55f));
+                Shapes.AddPicture(t, new Vector3(0f, 0.0031f, 0f), new Vector2(0.21f, 0.297f),
+                    Textures.Embedded("catalog_cover.jpg"), new Color(0.2f, 0.3f, 0.55f));
             },
         };
 

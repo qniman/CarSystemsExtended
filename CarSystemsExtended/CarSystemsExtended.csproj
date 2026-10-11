@@ -29,6 +29,7 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\icon.png" LogicalName="CSE.icon.png" />
+    <EmbeddedResource Include="Assets\catalog_cover.jpg" LogicalName="CSE.catalog_cover.jpg" />
   </ItemGroup>
   <Target Name="CopyToMods" AfterTargets="Build">
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GameDir)\Mods" />

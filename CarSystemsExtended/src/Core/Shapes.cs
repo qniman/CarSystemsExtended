@@ -47,6 +47,21 @@ namespace CSE.Core
             return go;
         }
 
+        /// A flat picture facing the part's +Y, with the image's top towards +Z
+        /// (a cover lying on a table). Falls back to a plain coloured quad without the texture.
+        public static GameObject AddPicture(Transform parent, Vector3 localPos, Vector2 size, Texture2D texture, Color fallback)
+        {
+            var go = Add(parent, PrimitiveType.Quad, localPos, new Vector3(size.x, size.y, 1f), fallback,
+                new Vector3(90, 0, 0), "picture");
+            if (texture != null)
+            {
+                var m = go.GetComponent<Renderer>().material;
+                m.color = Color.white;
+                m.mainTexture = texture;
+            }
+            return go;
+        }
+
         static Shader glowShader;
         static bool glowLooked;
 
