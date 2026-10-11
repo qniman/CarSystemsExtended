@@ -1,0 +1,96 @@
+using CSE.Core;
+using UnityEngine;
+
+namespace CSE.Parts
+{
+    // Definitions of every part in the mod. Mount offsets are first guesses and get tuned in game
+    // with the mount editor (debug mode).
+    //
+    // Car space: +X = right (passenger side), +Y = up, +Z = forward. The car is left-hand drive.
+    public static class PartCatalog
+    {
+        public static readonly PartDef AlarmUnit = new PartDef
+        {
+            Id = "cse_alarm_unit",
+            Name = "alarm unit",
+            Mass = 0.6f,
+            ColliderSize = new Vector3(0.19f, 0.04f, 0.095f),
+            Mount = new MountDef
+            {
+                RefPath = "Dashboard/Steering/steering_column2",
+                Offset = new Vector3(-0.12f, -0.18f, -0.05f),
+            },
+            Bolts = new[]
+            {
+                // Hangs under the dash: bolts go up through the ears, heads face down.
+                new BoltDef(new Vector3(-0.085f, -0.0175f, 0f), new Vector3(90, 0, 0), 7),
+                new BoltDef(new Vector3(0.085f, -0.0175f, 0f), new Vector3(90, 0, 0), 7),
+            },
+            PlugPos = new Vector3(-0.04f, 0f, -0.05f),
+            Build = t =>
+            {
+                Shapes.Add(t, PrimitiveType.Cube, Vector3.zero, new Vector3(0.13f, 0.035f, 0.09f), Shapes.Black);
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(-0.08f, -0.0155f, 0f), new Vector3(0.035f, 0.004f, 0.03f), Shapes.Steel);
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0.08f, -0.0155f, 0f), new Vector3(0.035f, 0.004f, 0.03f), Shapes.Steel);
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(-0.04f, 0f, -0.05f), new Vector3(0.04f, 0.018f, 0.012f), Shapes.DarkGrey);
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0.045f, 0.0215f, -0.03f), new Vector3(0.03f, 0.008f, 0.014f), Shapes.DarkGrey);
+                Shapes.Add(t, PrimitiveType.Sphere, new Vector3(0.03f, 0.005f, 0.045f), new Vector3(0.008f, 0.008f, 0.008f), Shapes.LedOff, default(Vector3), "led");
+            },
+        };
+
+        public static readonly PartDef Siren = new PartDef
+        {
+            Id = "cse_siren",
+            Name = "alarm siren",
+            Mass = 0.8f,
+            ColliderSize = new Vector3(0.095f, 0.11f, 0.07f),
+            ColliderCenter = new Vector3(0f, -0.01f, 0f),
+            Mount = new MountDef
+            {
+                RefPath = "MiscParts/pivot_battery",
+                Offset = new Vector3(0.17f, 0.1f, 0.12f),
+            },
+            Bolts = new[]
+            {
+                new BoltDef(new Vector3(0f, -0.048f, -0.015f), new Vector3(-90, 0, 0), 10),
+            },
+            Wired = true,
+            PlugPos = new Vector3(0f, 0f, -0.035f),
+            Build = t =>
+            {
+                Shapes.Add(t, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.09f, 0.03f, 0.09f), Shapes.Black, new Vector3(90, 0, 0));
+                Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, 0f, 0.031f), new Vector3(0.07f, 0.002f, 0.07f), Shapes.DarkGrey, new Vector3(90, 0, 0));
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, -0.05f, -0.01f), new Vector3(0.03f, 0.004f, 0.06f), Shapes.Steel);
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, -0.027f, 0.018f), new Vector3(0.03f, 0.05f, 0.004f), Shapes.Steel);
+            },
+        };
+
+        public static readonly PartDef Fuse = new PartDef
+        {
+            Id = "cse_fuse",
+            Name = "fuse 15a",
+            Mass = 0.05f,
+            ColliderSize = new Vector3(0.02f, 0.02f, 0.008f),
+            Mount = new MountDef
+            {
+                ParentPart = "cse_alarm_unit",
+                Offset = new Vector3(0.045f, 0.031f, -0.03f),
+                Tolerance = 0.08f,
+            },
+            Build = t =>
+            {
+                Shapes.Add(t, PrimitiveType.Cube, Vector3.zero, new Vector3(0.019f, 0.012f, 0.005f), new Color(0.15f, 0.35f, 0.9f), default(Vector3), "body");
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(-0.005f, -0.009f, 0f), new Vector3(0.003f, 0.007f, 0.001f), Shapes.Steel);
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0.005f, -0.009f, 0f), new Vector3(0.003f, 0.007f, 0.001f), Shapes.Steel);
+            },
+        };
+
+        // Parents before children: load order depends on it.
+        public static readonly PartDef[] All = { AlarmUnit, Siren, Fuse };
+
+        public static class Kits
+        {
+            public static readonly PartDef[] Alarm = { AlarmUnit, Siren, Fuse, Fuse };
+        }
+    }
+}
