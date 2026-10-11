@@ -31,6 +31,8 @@ namespace CSE.Debugging
             sb.AppendLine("alarm: " + AlarmSystem.Current + (AlarmSystem.FobOnKeys ? ", fob on keys" : ", no fob") +
                           (AlarmSystem.LastTrigger != null ? ", last trigger: " + AlarmSystem.LastTrigger : ""));
             sb.AppendLine("doors (L=locked O=open c=closed): " + DoorLocks.StatusText);
+            sb.AppendLine("remote start: " + RemoteStart.Current +
+                          (RemoteStart.LastResult != null ? ", last: " + RemoteStart.LastResult : ""));
             foreach (var p in PartManager.Parts)
             {
                 if (p == null) continue;

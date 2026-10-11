@@ -136,7 +136,13 @@ namespace CSE.Systems
 
         static bool consumedLockPress;
 
-        static bool FobWorks
+        public static bool HoodOpen
+        {
+            get { return hoodOpen != null && hoodOpen.Value; }
+        }
+
+        /// Fob on the keyring, keys with the player, car within range.
+        public static bool FobWorks
         {
             get
             {

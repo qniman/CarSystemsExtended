@@ -23,7 +23,9 @@ namespace CSE.Parts
                 {
                     Label = "under dash",
                     RefPath = "Dashboard/Steering/steering_column2",
-                    Offset = new Vector3(-0.12f, -0.18f, -0.05f),
+                    // placed in game with the mount editor
+                    Offset = new Vector3(0.232f, 0.008f, 0.276f),
+                    Euler = new Vector3(90f, 0f, 180f),
                 },
             },
             Bolts = new[]
@@ -159,13 +161,48 @@ namespace CSE.Parts
             },
         };
 
+        // ---------------------------------------------------------------- remote start
+
+        /// Pulls the choke cable for remote starts. Sits on the body next to the carburettor,
+        /// so it stays put when the engine comes out (but needs the engine in place to fit).
+        public static readonly PartDef ChokeServo = new PartDef
+        {
+            Id = "cse_choke_servo",
+            Name = "choke servo",
+            Mass = 0.4f,
+            ColliderSize = new Vector3(0.065f, 0.045f, 0.055f),
+            Mounts = new[]
+            {
+                new MountDef
+                {
+                    Label = "by the carburettor",
+                    RefPath = "Chassis/sub frame(xxxxx)/CarMotorPivot/block(Clone)/pivot_cylinder head/cylinder head(Clone)/pivot_carburator",
+                    Offset = new Vector3(0.15f, 0.05f, -0.1f),
+                },
+            },
+            Bolts = new[]
+            {
+                new BoltDef(new Vector3(0f, -0.0225f, 0.035f), new Vector3(90, 0, 0), 8),
+            },
+            Wired = true,
+            PlugPos = new Vector3(-0.033f, 0f, 0f),
+            Build = t =>
+            {
+                Shapes.Add(t, PrimitiveType.Cube, Vector3.zero, new Vector3(0.06f, 0.04f, 0.05f), Shapes.DarkGrey);
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, -0.0215f, 0.03f), new Vector3(0.03f, 0.003f, 0.025f), Shapes.Steel);
+                Shapes.Add(t, PrimitiveType.Cube, new Vector3(0.035f, 0.01f, 0f), new Vector3(0.006f, 0.035f, 0.008f), Shapes.Steel);
+                Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0.06f, 0.025f, 0f), new Vector3(0.003f, 0.03f, 0.003f), Shapes.Black, new Vector3(0, 0, 90));
+            },
+        };
+
         // Parents before children: load order depends on it.
-        public static readonly PartDef[] All = { AlarmUnit, Siren, Fuse, Fob, LockActuator };
+        public static readonly PartDef[] All = { AlarmUnit, Siren, Fuse, Fob, LockActuator, ChokeServo };
 
         public static class Kits
         {
             public static readonly PartDef[] Alarm = { AlarmUnit, Siren, Fuse, Fuse, Fob };
             public static readonly PartDef[] DoorLocks = { LockActuator, LockActuator };
+            public static readonly PartDef[] ChokeServo = { PartCatalog.ChokeServo };
         }
     }
 }

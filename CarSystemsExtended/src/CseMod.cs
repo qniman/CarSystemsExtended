@@ -19,8 +19,9 @@ namespace CSE
         public override string Description => "Aftermarket car alarm, remote start and parking sensors for the Satsuma, 1995 style.";
 
         SettingsCheckBox debugMode;
-        SettingsKeybind lockKey, unlockKey;
-        SettingsKeybind spawnKitKey, spawnLocksKey, mountEditorKey, testSirenKey;
+        SettingsKeybind lockKey, unlockKey, startKey;
+        SettingsSliderInt warmTemp, warmMinutes;
+        SettingsKeybind spawnKitKey, spawnLocksKey, spawnServoKey, mountEditorKey, testSirenKey;
         bool ready;
 
         public override void ModSetup()
@@ -36,11 +37,17 @@ namespace CSE
         {
             lockKey = Keybind.Add("cse_lock", "Alarm remote: lock / arm", KeyCode.L);
             unlockKey = Keybind.Add("cse_unlock", "Alarm remote: unlock / disarm", KeyCode.U);
+            startKey = Keybind.Add("cse_remote_start", "Alarm remote: remote start / stop", KeyCode.H);
+
+            Settings.AddHeader("Remote start");
+            warmTemp = Settings.AddSlider("cse_warm_temp", "Warm up until engine reaches (C)", 40, 80, 60, null, null);
+            warmMinutes = Settings.AddSlider("cse_warm_minutes", "Stop after at most (minutes)", 3, 20, 10, null, null);
 
             Settings.AddHeader("Debug");
             debugMode = Settings.AddCheckBox("cse_debug", "Debug mode (overlay, test keys, mount editor)", false, null);
             spawnKitKey = Keybind.Add("cse_spawn_alarm", "Debug: spawn alarm kit in front of you", KeyCode.F7);
             spawnLocksKey = Keybind.Add("cse_spawn_locks", "Debug: spawn door lock kit in front of you", KeyCode.F4);
+            spawnServoKey = Keybind.Add("cse_spawn_servo", "Debug: spawn choke servo in front of you", KeyCode.F3);
             mountEditorKey = Keybind.Add("cse_mount_editor", "Debug: toggle mount editor", KeyCode.F6);
             testSirenKey = Keybind.Add("cse_test_siren", "Debug: test siren chirp", KeyCode.F5);
         }
@@ -61,6 +68,7 @@ namespace CSE
                 Flasher.Init();
                 DoorLocks.Init();
                 AlarmSystem.Init(lockKey);
+                RemoteStart.Init(warmTemp, warmMinutes);
                 MountEditor.Init(ModLoader.GetModSettingsFolder(this));
                 SaveSystem.Load(this);
                 ready = true;
@@ -97,12 +105,15 @@ namespace CSE
 
                 if (lockKey.GetKeybindDown()) AlarmSystem.OnLockPressed();
                 if (unlockKey.GetKeybindDown()) AlarmSystem.OnUnlockPressed();
+                if (startKey.GetKeybindDown()) RemoteStart.OnButton();
                 AlarmSystem.Tick();
+                RemoteStart.Tick();
 
                 if (Debug)
                 {
                     if (spawnKitKey.GetKeybindDown()) SpawnKit(PartCatalog.Kits.Alarm);
                     if (spawnLocksKey.GetKeybindDown()) SpawnKit(PartCatalog.Kits.DoorLocks);
+                    if (spawnServoKey.GetKeybindDown()) SpawnKit(PartCatalog.Kits.ChokeServo);
                     if (mountEditorKey.GetKeybindDown()) MountEditor.Toggle();
                     if (testSirenKey.GetKeybindDown()) AlarmSystem.Chirp(2);
                 }
