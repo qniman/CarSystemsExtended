@@ -6,40 +6,43 @@ using UnityEngine;
 namespace CSE.Systems
 {
     // What the keyring looks like in the player's hand and in the ignition, with the remote
-    // hanging from the ring on a real physics joint.
+    // swinging from the ring (see Swing).
     public static class KeyRingView
     {
-        // Where the keyring sits in the right hand, relative to the camera pivot (next to where
-        // the game holds its tools).
-        static readonly Vector3 HandPos = new Vector3(0.11f, -0.13f, 0.24f);
-        static readonly Vector3 HandEuler = new Vector3(15f, -20f, 0f);
-
-        static Transform handParent;
-        static int playerLayer;
+        // Keys held in the lower right of the view, blade forward, ring towards the player.
+        static readonly Vector3 HandPos = new Vector3(0.14f, -0.12f, 0.32f);
+        static readonly Vector3 HandEuler = new Vector3(8f, 170f, 15f);
 
         static GameObject hand;
-        static Dangler handFob;
         static bool handHasFob;
+        static Swing handSwing;
 
         static GameObject ignition;
-        static Dangler ignitionFob;
+        static Swing ignitionSwing;
         static Transform keyMesh;
+
         static float blinkUntil;
+
+        // ---- HUD mode icon (top right), the same indicator the game uses for its tools
+        static Material modeIcon;
+        static Texture savedIcon;
+        static Texture2D keysIcon;
 
         public static void Init()
         {
-            var p = GameObject.Find("PLAYER/Pivot/AnimPivot/Camera/FPSCamera");
-            handParent = p != null ? p.transform : null;
-            playerLayer = LayerMask.NameToLayer("Player");
             keyMesh = GameRefs.FindInCar("Dashboard/Steering/steering_column2/Ignition/Keys/Key");
             hand = ignition = null;
-            handFob = ignitionFob = null;
-            if (handParent == null) ModConsole.Warning("[CSE] Camera pivot not found, keys cannot be shown in hand");
+            handSwing = ignitionSwing = null;
+            var mode = GameObject.Find("GUI/Indicators/Mode");
+            var r = mode != null ? mode.GetComponent<Renderer>() : null;
+            modeIcon = r != null ? r.sharedMaterial : null;
+            savedIcon = null;
+            if (modeIcon == null) ModConsole.Warning("[CSE] HUD mode indicator not found, no keys icon");
         }
 
         // ---------------------------------------------------------------- building
 
-        /// Key, bow and ring. Ring centre at the local origin, key hanging along -Z.
+        /// Key, bow and ring. Ring centre at the local origin, key along -Z.
         public static void BuildKey(Transform t)
         {
             Shapes.Add(t, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.026f, 0.0015f, 0.026f), Shapes.Steel, Vector3.zero, "ring");
@@ -66,28 +69,43 @@ namespace CSE.Systems
             foreach (Transform c in t) SetLayer(c, layer);
         }
 
+        /// A layer the main camera actually draws (Default unless culled).
+        static int VisibleLayer(Camera cam)
+        {
+            if ((cam.cullingMask & 1) != 0) return 0;
+            for (int i = 0; i < 32; i++) if ((cam.cullingMask & (1 << i)) != 0) return i;
+            return 0;
+        }
+
         // ---------------------------------------------------------------- hand
 
         public static void ShowInHand(KeyRing ring)
         {
             HideHand();
-            if (handParent == null) return;
+            var cam = GameRefs.Camera;
+            if (cam == null) return;
+
+            // Child of the rendering camera itself, so it follows every look and step.
             hand = new GameObject("cse_keys_in_hand");
-            hand.transform.parent = handParent;
+            hand.transform.parent = cam.transform;
             hand.transform.localPosition = HandPos;
             hand.transform.localRotation = Quaternion.Euler(HandEuler);
             BuildKey(hand.transform);
-            SetLayer(hand.transform, playerLayer);
             handHasFob = ring.Fob;
-            if (ring.Fob) handFob = Dangler.Create(hand.transform, null, playerLayer);
+            if (ring.Fob) handSwing = Swing.Create(hand.transform);
+            SetLayer(hand.transform, VisibleLayer(cam));
+            ShowIcon(true);
         }
 
         public static void HideHand()
         {
-            if (handFob != null) Object.Destroy(handFob.gameObject);
-            if (hand != null) Object.Destroy(hand);
-            handFob = null;
+            if (hand != null)
+            {
+                Object.Destroy(hand);
+                ShowIcon(false);
+            }
             hand = null;
+            handSwing = null;
         }
 
         /// Remote LED flash when a button is pressed.
@@ -96,28 +114,94 @@ namespace CSE.Systems
             blinkUntil = Time.time + (battery < 30f ? 0.08f : 0.2f);
         }
 
+        // ---------------------------------------------------------------- HUD icon
+
+        static void ShowIcon(bool on)
+        {
+            if (modeIcon == null) return;
+            if (on)
+            {
+                if (modeIcon.mainTexture != KeysIcon) savedIcon = modeIcon.mainTexture;
+                modeIcon.mainTexture = KeysIcon;
+            }
+            else if (modeIcon.mainTexture == KeysIcon)
+            {
+                // the game puts its own icon back when it is the one switching (keys 1/2)
+                modeIcon.mainTexture = savedIcon;
+            }
+        }
+
+        /// White key silhouette on transparent, in the style of the game's mode icons.
+        static Texture2D KeysIcon
+        {
+            get
+            {
+                if (keysIcon != null) return keysIcon;
+                const int S = 64;
+                var t = new Texture2D(S, S, TextureFormat.ARGB32, false);
+                t.wrapMode = TextureWrapMode.Clamp;
+                var px = new Color[S * S];
+                for (int y = 0; y < S; y++)
+                {
+                    for (int x = 0; x < S; x++)
+                    {
+                        // bow: ring with a hole
+                        float dx = x - 18f, dy = y - 32f;
+                        float r = Mathf.Sqrt(dx * dx + dy * dy);
+                        float a = Mathf.Clamp01(12.5f - r) * Mathf.Clamp01(r - 5.5f);
+                        // blade
+                        if (x >= 28 && x <= 58 && y >= 29 && y <= 35) a = 1f;
+                        // two teeth
+                        if ((x >= 44 && x <= 48 || x >= 51 && x <= 55) && y >= 22 && y < 29) a = 1f;
+                        px[y * S + x] = new Color(1f, 1f, 1f, a);
+                    }
+                }
+                t.SetPixels(px);
+                t.Apply();
+                keysIcon = t;
+                return t;
+            }
+        }
+
         // ---------------------------------------------------------------- ignition
+
+        /// The bow end of the game's key: the end of its mesh farthest from the lock cylinder
+        /// (the parent "Keys" pivot the key turns around).
+        static bool FindBow(out Vector3 localPoint)
+        {
+            localPoint = Vector3.zero;
+            var mf = keyMesh != null ? keyMesh.GetComponentInChildren<MeshFilter>() : null;
+            if (mf == null || mf.sharedMesh == null) return false;
+            var b = mf.sharedMesh.bounds;
+            var meshT = mf.transform;
+            Vector3 e = b.extents;
+            Vector3 axis = e.x >= e.y && e.x >= e.z ? Vector3.right * e.x : e.y >= e.z ? Vector3.up * e.y : Vector3.forward * e.z;
+            Vector3 endA = meshT.TransformPoint(b.center + axis);
+            Vector3 endB = meshT.TransformPoint(b.center - axis);
+            Vector3 lockPivot = keyMesh.parent != null ? keyMesh.parent.position : keyMesh.position;
+            Vector3 bow = Vector3.Distance(endA, lockPivot) > Vector3.Distance(endB, lockPivot) ? endA : endB;
+            localPoint = keyMesh.InverseTransformPoint(bow);
+            return true;
+        }
 
         static void BuildIgnition()
         {
             DestroyIgnition();
-            Transform parent;
-            Vector3 pos;
-            Quaternion rot;
-            if (!PartManager.ResolveMount(PartCatalog.KeyringAnchor.Mounts[0], null, out parent, out pos, out rot)) return;
+            Vector3 bow;
+            if (!FindBow(out bow)) bow = Vector3.zero;
             ignition = new GameObject("cse_keyring_in_ignition");
-            ignition.transform.parent = parent;
-            ignition.transform.localPosition = pos;
-            ignition.transform.localRotation = rot;
-            Shapes.Add(ignition.transform, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.026f, 0.0015f, 0.026f), Shapes.Steel, new Vector3(90, 0, 0), "ring");
+            ignition.transform.parent = keyMesh;
+            ignition.transform.localPosition = bow;
+            ignition.transform.localRotation = Quaternion.identity;
+            // a ring standing in the plane of the key bow
+            Shapes.Add(ignition.transform, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.024f, 0.0015f, 0.024f), Shapes.Steel, new Vector3(0, 0, 90), "ring");
         }
 
         static void DestroyIgnition()
         {
-            if (ignitionFob != null) Object.Destroy(ignitionFob.gameObject);
             if (ignition != null) Object.Destroy(ignition);
-            ignitionFob = null;
             ignition = null;
+            ignitionSwing = null;
         }
 
         // ---------------------------------------------------------------- frame
@@ -130,95 +214,85 @@ namespace CSE.Systems
             bool wantIgnition = inIgnition != null && keyMesh != null && keyMesh.gameObject.activeInHierarchy;
             if (wantIgnition && ignition == null) BuildIgnition();
             if (!wantIgnition && ignition != null) DestroyIgnition();
-            if (wantIgnition && ignition != null && inIgnition.Fob != (ignitionFob != null))
+            if (ignition != null && inIgnition.Fob != (ignitionSwing != null))
             {
-                if (ignitionFob != null) Object.Destroy(ignitionFob.gameObject);
-                ignitionFob = inIgnition.Fob
-                    ? Dangler.Create(ignition.transform, GameRefs.Car.GetComponent<Rigidbody>(), 0)
-                    : null;
+                if (ignitionSwing != null) Object.Destroy(ignitionSwing.gameObject);
+                ignitionSwing = inIgnition.Fob ? Swing.Create(ignition.transform) : null;
             }
 
-            if (handFob != null) handFob.SetLed(Time.time < blinkUntil, inHand != null ? inHand.Battery : 0f);
-        }
-
-        /// Mount editor: re-place the ring after its anchor moved.
-        public static void Reseat()
-        {
-            if (ignition != null) BuildIgnition();
+            if (handSwing != null) handSwing.SetLed(Time.time < blinkUntil, inHand != null ? inHand.Battery : 0f);
         }
     }
 
-    // The remote hanging from the keyring. A free rigidbody held at its keyring hole by a
-    // ConfigurableJoint. In the ignition the joint is tied to the car body so it swings with the
-    // car's own motion (like the Key mod does); in the hand it is tied to a world point that
-    // follows the hand. The anchor point is moved every physics step so it also follows the key
-    // turning in the lock.
-    public class Dangler : MonoBehaviour
+    // The remote hanging from the keyring as a pendulum, simulated here rather than with a
+    // physics joint: the hand and the car move outside the physics step (interpolated, camera
+    // driven), so a joint lags and jitters. Every rendered frame the pivot's real acceleration
+    // is measured and the remote swings under gravity minus that acceleration, with damping.
+    public class Swing : MonoBehaviour
     {
         // Keyring hole of the remote, in remote space (back end, see PartCatalog.Fob).
-        static readonly Vector3 Hole = new Vector3(0f, 0f, -0.032f);
+        static readonly Vector3 Hole = new Vector3(0f, 0f, -0.03f);
+        const float Length = 0.032f;   // pivot to the remote's centre of mass
+        const float Damping = 3f;      // 1/s, air and the ring's friction
+        const float MaxAccel = 60f;    // m/s^2, ignore anything wilder (teleports, first frame)
+        const int Substeps = 4;
 
-        Transform ring;
-        Rigidbody carBody;
-        ConfigurableJoint joint;
+        Transform pivot;
+        Vector3 dir = Vector3.down;    // pivot -> remote, world space
+        Vector3 omega;                 // rad/s, world space
+        Vector3 lastPos, lastVel, accel;
+        int frames;
         Material led;
 
-        public static Dangler Create(Transform ring, Rigidbody carBody, int layer)
+        public static Swing Create(Transform pivot)
         {
-            var go = new GameObject("cse_fob_dangling");
-            go.layer = layer;
+            var go = new GameObject("cse_fob_swinging");
+            go.transform.parent = pivot;
+            go.layer = pivot.gameObject.layer;
             PartCatalog.Fob.Build(go.transform);
-            foreach (Transform c in go.transform) c.gameObject.layer = layer;
-
-            // hang straight down from the ring
-            go.transform.rotation = Quaternion.LookRotation(Vector3.down, ring.forward);
-            go.transform.position = ring.position - go.transform.TransformVector(Hole);
-
-            var rb = go.AddComponent<Rigidbody>();
-            rb.mass = 0.04f;
-            rb.drag = 0.6f;
-            rb.angularDrag = 1.5f;
-            rb.interpolation = RigidbodyInterpolation.Interpolate;
-            // No collider (it must not snag on the dash or the player), so Unity cannot work out
-            // the inertia; give it that of a 32x12x56 mm, 40 g box or it swings like it is in syrup.
-            rb.inertiaTensor = new Vector3(1.1e-5f, 1.4e-5f, 0.4e-5f);
-            rb.inertiaTensorRotation = Quaternion.identity;
-
-            var j = go.AddComponent<ConfigurableJoint>();
-            j.autoConfigureConnectedAnchor = false;
-            j.anchor = Hole;
-            j.connectedBody = carBody;
-            j.xMotion = j.yMotion = j.zMotion = ConfigurableJointMotion.Locked;
-            j.angularXMotion = j.angularYMotion = j.angularZMotion = ConfigurableJointMotion.Limited;
-            j.lowAngularXLimit = new SoftJointLimit { limit = -80f };
-            j.highAngularXLimit = new SoftJointLimit { limit = 80f };
-            j.angularYLimit = new SoftJointLimit { limit = 80f };
-            j.angularZLimit = new SoftJointLimit { limit = 45f };
-
-            var d = go.AddComponent<Dangler>();
-            d.ring = ring;
-            d.carBody = carBody;
-            d.joint = j;
+            var s = go.AddComponent<Swing>();
+            s.pivot = pivot;
             var ledT = go.transform.Find("led");
-            d.led = ledT != null ? ledT.GetComponent<Renderer>().material : null;
-            d.UpdateAnchor();
-            return d;
+            s.led = ledT != null ? ledT.GetComponent<Renderer>().material : null;
+            s.Place();
+            return s;
         }
 
-        void UpdateAnchor()
+        void LateUpdate()
         {
-            if (ring == null || joint == null) return;
-            joint.connectedAnchor = carBody != null ? carBody.transform.InverseTransformPoint(ring.position) : ring.position;
-        }
+            float dt = Time.deltaTime;
+            if (pivot == null || dt <= 0f) return;
 
-        void FixedUpdate()
-        {
-            if (ring == null)
+            Vector3 p = pivot.position;
+            Vector3 v = (p - lastPos) / dt;
+            Vector3 a = (v - lastVel) / dt;
+            lastPos = p;
+            lastVel = v;
+            if (++frames < 3 || a.sqrMagnitude > 25f * MaxAccel * MaxAccel) a = Vector3.zero;
+            accel = Vector3.Lerp(accel, Vector3.ClampMagnitude(a, MaxAccel), 0.5f);
+
+            // In the pivot's frame the remote feels gravity minus the pivot's acceleration.
+            Vector3 g = Physics.gravity - accel;
+            float h = dt / Substeps;
+            for (int i = 0; i < Substeps; i++)
             {
-                Destroy(gameObject);
-                return;
+                Vector3 alpha = Vector3.Cross(dir, g) / Length - omega * Damping;
+                omega += alpha * h;
+                omega -= Vector3.Project(omega, dir); // no spin about its own hanging axis
+                float speed = omega.magnitude;
+                if (speed > 1e-5f) dir = Quaternion.AngleAxis(speed * h * Mathf.Rad2Deg, omega / speed) * dir;
+                dir.Normalize();
             }
-            UpdateAnchor();
+            Place();
+        }
+
+        void Place()
+        {
+            if (pivot == null) return;
+            Vector3 up = Vector3.ProjectOnPlane(pivot.forward, dir);
+            if (up.sqrMagnitude < 1e-6f) up = Vector3.ProjectOnPlane(pivot.up, dir);
+            transform.rotation = Quaternion.LookRotation(dir, up);
+            transform.position = pivot.position - transform.rotation * Hole;
         }
 
         public void SetLed(bool on, float battery)

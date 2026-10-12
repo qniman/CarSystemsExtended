@@ -163,25 +163,6 @@ namespace CSE.Parts
             Build = Systems.KeyRingView.BuildKey,
         };
 
-        /// Where the keyring hangs on the game's key in the ignition. Never spawned; it only
-        /// gives the mount editor something to move (F6, Home to it, key must be in the lock).
-        public static readonly PartDef KeyringAnchor = new PartDef
-        {
-            Id = "cse_keyring_anchor",
-            Name = "keyring anchor",
-            Mounts = new[]
-            {
-                new MountDef
-                {
-                    Label = "ring on the ignition key",
-                    RefPath = "Dashboard/Steering/steering_column2/Ignition/Keys/Key",
-                    AttachToRef = true,
-                    Offset = new Vector3(0f, -0.01f, -0.06f),
-                },
-            },
-            Build = t => Shapes.Add(t, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.026f, 0.0015f, 0.026f), Shapes.Steel, new Vector3(90, 0, 0)),
-        };
-
         /// 12 V A23 battery for the remote.
         public static readonly PartDef FobBattery = new PartDef
         {
@@ -329,7 +310,7 @@ namespace CSE.Parts
         {
             AlarmUnit, Siren, Fuse, StatusLed, Fob, LockActuator, ChokeServo,
             Brochure, Envelope, Parcel,
-            Keys, KeyringAnchor, FobBattery,
+            Keys, FobBattery,
         };
 
         public static class Kits

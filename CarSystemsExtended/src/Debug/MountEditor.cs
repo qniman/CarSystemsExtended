@@ -128,7 +128,6 @@ namespace CSE.Debugging
             {
                 foreach (var p in PartManager.Parts)
                     if (p != null && p.Def == Selected.Def && p.MountIndex == Selected.Index) p.Reseat();
-                if (Selected.Def == PartCatalog.KeyringAnchor) Systems.KeyRingView.Reseat();
             }
 
             PlaceGhost();
