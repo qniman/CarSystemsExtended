@@ -51,6 +51,7 @@ My Summer Car mod (MSCLoader) by **qniman**: 1995-style aftermarket alarm, centr
 - Menu mode: globals `PlayerInMenu` (cursor, no mouse look) + `PlayerStop` (no walking). HUD: `GUIuse`, `GUIassemble`, `GUIdisassemble`, `GUIbuy`, `GUIinteraction`, `GUIsubtitle`.
 - Store objects are LOD-switched; find them with `Transform.Find` from the `STORE` root. Post box `STORE/LOD/Post Box`, counter `STORE/LOD/ActivateStore/PostOffice/PostOrderBuy`.
 - Esc is the game's pause menu — don't use it for our UI.
+- **Physical keys** (`Systems/KeySystem.cs`, `KeyRingView.cs`): the mod owns global `PlayerKeySatsuma` (1 only while keys are in hand or in the lock). Keyring state = `KeyRing` (remote, A23 battery, spare) in `Part.Data` for loose keys, `KeySystem.Pocket` / `Ignition` otherwise. Lock state follows the game key mesh `.../Ignition/Keys/Key`. Key 3 uses the `SelectItem` FSM event `ITEM1` to put tools away (`PlayerHandRight`). Remote hangs on a `ConfigurableJoint` (ignition: tied to the car rigidbody, anchor updated each FixedUpdate; hand: world anchor). The `Key` mod (Mechanic) conflicts.
 
 ## Versions
 - `v1.0.0` (tag) = everything before the catalog cover; `release/CarSystemsExtended-1.0.0.zip` matches it (release binaries are gitignored).
