@@ -169,7 +169,8 @@ namespace CSE.Systems
             return part;
         }
 
-        /// The game's hand picked up a keyring: it goes into the pocket.
+        /// Keyring held in the game's hand (LMB, like any item - to move it around).
+        /// Use (F) puts it in the pocket.
         static bool KeysHeld(Part keys)
         {
             if (Pocket != null)
@@ -177,6 +178,9 @@ namespace CSE.Systems
                 Gui.Interaction(L.T("keys_pocket_full"));
                 return true;
             }
+            Gui.Interaction(L.T("keys_to_pocket"));
+            if (!GameRefs.UseButtonDown) return true;
+
             Pocket = KeyRing.Parse(keys.Data);
             Sfx.Game("PlayerMisc", "pocket", keys.transform.position, 0.8f);
             PartManager.Remove(keys);

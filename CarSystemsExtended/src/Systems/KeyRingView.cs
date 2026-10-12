@@ -92,7 +92,7 @@ namespace CSE.Systems
             hand.transform.localRotation = Quaternion.Euler(HandEuler);
             BuildKey(hand.transform);
             handHasFob = ring.Fob;
-            if (ring.Fob) handSwing = Swing.Create(hand.transform);
+            if (ring.Fob) handSwing = Swing.Create(hand.transform, Swing.Feel.Hand);
             SetLayer(hand.transform, VisibleLayer(cam));
             ShowIcon(true);
         }
@@ -217,7 +217,7 @@ namespace CSE.Systems
             if (ignition != null && inIgnition.Fob != (ignitionSwing != null))
             {
                 if (ignitionSwing != null) Object.Destroy(ignitionSwing.gameObject);
-                ignitionSwing = inIgnition.Fob ? Swing.Create(ignition.transform) : null;
+                ignitionSwing = inIgnition.Fob ? Swing.Create(ignition.transform, Swing.Feel.Car) : null;
             }
 
             if (handSwing != null) handSwing.SetLed(Time.time < blinkUntil, inHand != null ? inHand.Battery : 0f);
@@ -233,10 +233,22 @@ namespace CSE.Systems
         // Keyring hole of the remote, in remote space (back end, see PartCatalog.Fob).
         static readonly Vector3 Hole = new Vector3(0f, 0f, -0.03f);
         const float Length = 0.032f;   // pivot to the remote's centre of mass
-        const float Damping = 3f;      // 1/s, air and the ring's friction
         const float MaxAccel = 60f;    // m/s^2, ignore anything wilder (teleports, first frame)
         const int Substeps = 4;
 
+        /// How it feels. In the car the full acceleration swings it; in the hand the head bob and
+        /// mouse look would make it twitch, and a real hand absorbs most of that anyway.
+        public struct Feel
+        {
+            public float Response;  // share of the pivot's acceleration that reaches the remote
+            public float Smoothing; // 0..1 per frame, lower = smoother acceleration
+            public float Damping;   // 1/s, how fast a swing dies down
+
+            public static readonly Feel Car = new Feel { Response = 1f, Smoothing = 0.5f, Damping = 3f };
+            public static readonly Feel Hand = new Feel { Response = 0.3f, Smoothing = 0.12f, Damping = 6f };
+        }
+
+        Feel feel;
         Transform pivot;
         Vector3 dir = Vector3.down;    // pivot -> remote, world space
         Vector3 omega;                 // rad/s, world space
@@ -244,7 +256,7 @@ namespace CSE.Systems
         int frames;
         Material led;
 
-        public static Swing Create(Transform pivot)
+        public static Swing Create(Transform pivot, Feel feel)
         {
             var go = new GameObject("cse_fob_swinging");
             go.transform.parent = pivot;
@@ -252,6 +264,7 @@ namespace CSE.Systems
             PartCatalog.Fob.Build(go.transform);
             var s = go.AddComponent<Swing>();
             s.pivot = pivot;
+            s.feel = feel;
             var ledT = go.transform.Find("led");
             s.led = ledT != null ? ledT.GetComponent<Renderer>().material : null;
             s.Place();
@@ -269,14 +282,14 @@ namespace CSE.Systems
             lastPos = p;
             lastVel = v;
             if (++frames < 3 || a.sqrMagnitude > 25f * MaxAccel * MaxAccel) a = Vector3.zero;
-            accel = Vector3.Lerp(accel, Vector3.ClampMagnitude(a, MaxAccel), 0.5f);
+            accel = Vector3.Lerp(accel, Vector3.ClampMagnitude(a, MaxAccel) * feel.Response, feel.Smoothing);
 
             // In the pivot's frame the remote feels gravity minus the pivot's acceleration.
             Vector3 g = Physics.gravity - accel;
             float h = dt / Substeps;
             for (int i = 0; i < Substeps; i++)
             {
-                Vector3 alpha = Vector3.Cross(dir, g) / Length - omega * Damping;
+                Vector3 alpha = Vector3.Cross(dir, g) / Length - omega * feel.Damping;
                 omega += alpha * h;
                 omega -= Vector3.Project(omega, dir); // no spin about its own hanging axis
                 float speed = omega.magnitude;

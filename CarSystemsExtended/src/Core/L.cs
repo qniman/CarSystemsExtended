@@ -30,6 +30,7 @@ namespace CSE.Core
             { "open_parcel", new[] { "OPEN PARCEL (RMB)", "ОТКРЫТЬ ПОСЫЛКУ (ПКМ)" } },
             { "hold_brake", new[] { "HOLD THE BRAKE PEDAL", "УДЕРЖИВАЙТЕ ПЕДАЛЬ ТОРМОЗА" } },
             { "keys_picked", new[] { "SATSUMA KEYS IN POCKET ({0} TO TAKE OUT)", "КЛЮЧИ САТСУМЫ В КАРМАНЕ ({0} — ДОСТАТЬ)" } },
+            { "keys_to_pocket", new[] { "PUT IN POCKET (F)", "УБРАТЬ В КАРМАН (F)" } },
             { "keys_pocket_full", new[] { "ALREADY CARRYING KEYS", "КЛЮЧИ УЖЕ В КАРМАНЕ" } },
             { "keys_none", new[] { "NO KEYS", "НЕТ КЛЮЧЕЙ" } },
             { "keys_in_ignition", new[] { "KEYS ARE IN THE IGNITION", "КЛЮЧИ В ЗАМКЕ ЗАЖИГАНИЯ" } },
