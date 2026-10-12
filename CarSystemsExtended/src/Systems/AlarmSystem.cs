@@ -27,7 +27,6 @@ namespace CSE.Systems
         const float SirenDrainPerSec = 0.01f;
 
         public static Mode Current { get; private set; }
-        public static bool FobOnKeys;
         public static bool Powered { get; private set; }
         public static string LastTrigger { get; private set; }
         /// Went off since it was last armed; the LED tells the owner when they come back.
@@ -38,7 +37,6 @@ namespace CSE.Systems
         static float errorUntil;
         static bool pendingRelock;
         static AudioSource sirenSource;
-        static FsmInt playerKeySatsuma;
         static FsmBool ignitionAcc;
         static FsmBool hoodOpen;
         static Transform keyInLock;
@@ -51,7 +49,6 @@ namespace CSE.Systems
         {
             lockKey = lockKeybind;
             Current = Mode.Disarmed;
-            FobOnKeys = false;
             Powered = false;
             LastTrigger = null;
             AlarmMemory = false;
@@ -60,7 +57,7 @@ namespace CSE.Systems
             consumedLockPress = false;
 
             PartCatalog.Fob.OnHeld = FobHeld;
-            playerKeySatsuma = FsmVariables.GlobalVariables.FindFsmInt("PlayerKeySatsuma");
+            PartCatalog.FobBattery.OnHeld = BatteryHeld;
 
             var ign = GameRefs.FindInCar("Dashboard/Steering/steering_column2/IgnitionSatsuma");
             var ignFsm = ign != null ? ign.gameObject.GetPlayMaker("UseNew") : null;
@@ -86,7 +83,6 @@ namespace CSE.Systems
             StopSiren();
             Flasher.SetContinuous(false);
             Current = Mode.Disarmed;
-            FobOnKeys = false;
             LastTrigger = null;
             AlarmMemory = false;
             pendingRelock = false;
@@ -94,9 +90,8 @@ namespace CSE.Systems
         }
 
         /// Restores the saved mode; the doors are re-locked once power is confirmed.
-        public static void Restore(bool armed, bool fobOnKeys)
+        public static void Restore(bool armed)
         {
-            FobOnKeys = fobOnKeys;
             if (armed)
             {
                 Current = Mode.Armed;
@@ -124,6 +119,20 @@ namespace CSE.Systems
             return fuse != null && fuse.transform.parent == u.transform && !fuse.Damaged;
         }
 
+        const float SirenFuseChance = 0.03f;
+
+        /// Blows the fuse in the alarm unit (spark, unit goes dead until a new one is fitted).
+        public static void BlowFuse(string reason)
+        {
+            var u = PartManager.FindInstalled(PartCatalog.AlarmUnit.Id);
+            var fuse = PartManager.FindInstalled(PartCatalog.Fuse.Id);
+            if (u == null || fuse == null || fuse.Damaged || fuse.transform.parent != u.transform) return;
+            fuse.Damaged = true;
+            fuse.ApplyDamagedLook();
+            Sfx.At(Sfx.Spark, fuse.transform.position, 0.9f);
+            ModConsole.Print("[CSE] Alarm fuse blew: " + reason);
+        }
+
         /// Human-readable reason for no power, for the debug overlay.
         public static string Diagnose()
         {
@@ -148,13 +157,31 @@ namespace CSE.Systems
 
         // ---------------------------------------------------------------- fob
 
+        // A23 battery: about 0.4 % per press (~200 presses), the pager drains while it trills,
+        // and a little goes every game day. Below 30 % the range falls off, below 5 % it is dead.
+        const float PressDrain = 0.4f;
+        const float PagerDrainPerSec = 0.2f;
+        const float WeakBattery = 30f;
+        const float DeadBattery = 5f;
+        const float WeakRange = 10f;
+
+        static string LockKeyName
+        {
+            get { return (lockKey != null ? lockKey.GetKeyValue.ToString() : "L").ToUpperInvariant(); }
+        }
+
+        /// Remote in hand: press L to put it on the keyring in your pocket.
         static bool FobHeld(Part fob)
         {
-            string key = lockKey != null ? lockKey.GetKeyValue.ToString() : "L";
-            Gui.Interaction(L.F("fob_attach", key.ToUpperInvariant()));
+            var ring = KeySystem.Pocket;
+            if (ring == null) { Gui.Interaction(L.T("fob_needs_keys")); return true; }
+            if (ring.Fob) { Gui.Interaction(L.T("keys_have_remote")); return true; }
+
+            Gui.Interaction(L.F("fob_attach", LockKeyName));
             if (lockKey != null && lockKey.GetKeybindDown())
             {
-                FobOnKeys = true;
+                ring.Fob = true;
+                ring.Battery = string.IsNullOrEmpty(fob.Data) ? 100f : KeyRing.Parse(fob.Data).Battery;
                 Sfx.Game("CarFoley", "carkeys_in", fob.transform.position, 0.6f);
                 PartManager.Remove(fob);
                 consumedLockPress = true;
@@ -162,36 +189,83 @@ namespace CSE.Systems
             return true;
         }
 
-        /// Fob on the keyring, keys with the player (not in the ignition), car within range.
+        /// A23 battery in hand: press L to swap it into the remote on your keyring.
+        static bool BatteryHeld(Part battery)
+        {
+            var ring = KeySystem.Pocket;
+            if (ring == null || !ring.Fob) { Gui.Interaction(L.T("battery_needs_remote")); return true; }
+
+            Gui.Interaction(L.F("battery_replace", LockKeyName));
+            if (lockKey != null && lockKey.GetKeybindDown())
+            {
+                ring.Battery = 100f;
+                Sfx.Game("CarFoley", "dash_button", battery.transform.position, 0.6f);
+                PartManager.Remove(battery);
+                consumedLockPress = true;
+            }
+            return true;
+        }
+
+        static float RangeFor(float battery)
+        {
+            return battery >= WeakBattery ? FobRange : Mathf.Lerp(WeakRange, FobRange, battery / WeakBattery);
+        }
+
+        /// Keys in hand with a live remote, car within its (battery dependent) range.
         public static bool FobWorks
         {
             get
             {
-                if (!FobOnKeys || playerKeySatsuma == null || playerKeySatsuma.Value != 1) return false;
-                if (KeyInIgnition) return false;
+                var ring = KeySystem.HandRing;
+                if (ring == null || !ring.Fob || ring.Battery < DeadBattery) return false;
                 var cam = GameRefs.Camera;
-                return cam != null && Vector3.Distance(cam.transform.position, GameRefs.Car.transform.position) <= FobRange;
+                return cam != null && Vector3.Distance(cam.transform.position, GameRefs.Car.transform.position) <= RangeFor(ring.Battery);
             }
         }
 
-        /// The fob can hear the car: on the keyring, keys with the player or in the car,
-        /// within reach of the car's stronger transmitter.
-        public static bool FobHears
+        /// Keys in hand with a remote that still has some battery.
+        public static bool HandFobAlive
         {
             get
             {
-                if (!FobOnKeys) return false;
-                if (KeyInIgnition) return true; // the fob is in the car with the keys
-                if (playerKeySatsuma == null || playerKeySatsuma.Value != 1) return false;
-                var cam = GameRefs.Camera;
-                return cam != null && Vector3.Distance(cam.transform.position, GameRefs.Car.transform.position) <= CarTransmitterRange;
+                var ring = KeySystem.HandRing;
+                return ring != null && ring.Fob && ring.Battery >= DeadBattery;
+            }
+        }
+
+        /// Presses a button on the remote in hand: LED flash and battery drain even out of range.
+        /// True if the car will receive it.
+        public static bool PressFob()
+        {
+            var ring = KeySystem.HandRing;
+            if (ring == null) KeySystem.RemoteNotInHand();
+            if (ring == null || !ring.Fob || ring.Battery < DeadBattery) return false;
+            bool reaches = FobWorks; // range from the charge before this press
+            ring.Battery = Mathf.Max(0f, ring.Battery - PressDrain);
+            KeyRingView.Blink(ring.Battery);
+            return reaches;
+        }
+
+        /// Some remote can hear the car (pager, remote start replies). where = the loose keyring
+        /// it is on, or null if it is with the player / in the car.
+        public static bool FobHears(out Transform where)
+        {
+            return KeySystem.FindListeningRemote(CarTransmitterRange, out where);
+        }
+
+        public static bool FobHearsAny
+        {
+            get
+            {
+                Transform t;
+                return FobHears(out t);
             }
         }
 
         public static void OnLockPressed()
         {
             if (consumedLockPress) { consumedLockPress = false; return; }
-            if (!FobWorks || !Powered) return;
+            if (!PressFob() || !Powered) return;
 
             if (DoorLocks.AnyDoorOpen || HoodOpen)
             {
@@ -212,7 +286,7 @@ namespace CSE.Systems
 
         public static void OnUnlockPressed()
         {
-            if (!FobWorks || !Powered) return;
+            if (!PressFob() || !Powered) return;
             StopSiren();
             Current = Mode.Disarmed;
             DoorLocks.UnlockAll();
@@ -350,6 +424,8 @@ namespace CSE.Systems
                         if (SirenWailing) GameRefs.DrainBattery(SirenDrainPerSec * Time.deltaTime);
                         if (Time.time > triggeredUntil)
                         {
+                            // A full half-minute of siren is hard on a 15 A fuse.
+                            if (SirenWailing && Random.value < SirenFuseChance) BlowFuse("siren cycle");
                             // Siren cycle over: back on guard with a fresh grace period.
                             StopSiren();
                             armedAt = Time.time;
@@ -361,7 +437,10 @@ namespace CSE.Systems
 
             UpdateSiren();
             // Pager: the fob beeps along while the car is going off and the fob can hear it.
-            Sfx.SetFobAlarm(Powered && Current == Mode.Triggered && FobHears);
+            Transform pagerAt = null;
+            bool pager = Powered && Current == Mode.Triggered && FobHears(out pagerAt);
+            Sfx.SetFobAlarm(pager, pagerAt);
+            if (pager) KeySystem.DrainListening(PagerDrainPerSec * Time.deltaTime);
             Flasher.Tick();
             UpdateLeds();
         }

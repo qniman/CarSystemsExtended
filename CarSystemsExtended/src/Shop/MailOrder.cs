@@ -53,6 +53,9 @@ namespace CSE.Shop
                 Price = 420,
                 Contents = PartCatalog.Kits.ChokeServo,
             },
+            new CatalogEntry { Id = "batteries", Price = 25, Contents = PartCatalog.Kits.Batteries },
+            new CatalogEntry { Id = "fuses", Price = 15, Contents = PartCatalog.Kits.Fuses },
+            new CatalogEntry { Id = "remote", Price = 290, Contents = PartCatalog.Kits.Remote },
         };
 
         public class Order

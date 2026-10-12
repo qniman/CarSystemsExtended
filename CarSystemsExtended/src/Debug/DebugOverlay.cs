@@ -28,12 +28,13 @@ namespace CSE.Debugging
                           (GameRefs.HasRatchet ? " (ratchet)" : ""));
             sb.AppendLine("battery charge " + GameRefs.BatteryCharge.ToString("0.0"));
             sb.AppendLine("alarm power: " + AlarmSystem.Diagnose());
-            sb.AppendLine("alarm: " + AlarmSystem.Current + (AlarmSystem.FobOnKeys ? ", fob on keys" : ", no fob") +
+            sb.AppendLine("alarm: " + AlarmSystem.Current + (AlarmSystem.FobWorks ? ", remote in range" : "") +
                           (AlarmSystem.LastTrigger != null ? ", last trigger: " + AlarmSystem.LastTrigger : ""));
             sb.AppendLine("doors (L=locked O=open c=closed): " + DoorLocks.StatusText);
             sb.Append("mail orders posted: " + Shop.MailOrder.Pending.Count);
             foreach (var o in Shop.MailOrder.Pending) sb.Append(" [" + o.Kits + ", " + o.DaysLeft + "d]");
             sb.AppendLine();
+            sb.AppendLine("keys: " + KeySystem.StatusText);
             sb.AppendLine("remote start: " + RemoteStart.Current +
                           (RemoteStart.LastResult != null ? ", last: " + RemoteStart.LastResult : ""));
             foreach (var p in PartManager.Parts)

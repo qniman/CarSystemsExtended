@@ -125,8 +125,11 @@ namespace CSE.Debugging
             if (Input.GetKeyDown(KeyCode.End)) Print();
 
             if (changed)
+            {
                 foreach (var p in PartManager.Parts)
                     if (p != null && p.Def == Selected.Def && p.MountIndex == Selected.Index) p.Reseat();
+                if (Selected.Def == PartCatalog.KeyringAnchor) Systems.KeyRingView.Reseat();
+            }
 
             PlaceGhost();
         }

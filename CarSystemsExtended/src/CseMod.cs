@@ -41,7 +41,7 @@ namespace CSE
         SettingsCheckBox debugMode;
         SettingsDropDownList language;
         int frameErrors;
-        SettingsKeybind lockKey, unlockKey, startKey;
+        SettingsKeybind lockKey, unlockKey, startKey, keysKey, dropKeysKey;
         SettingsSliderInt warmTemp, warmMinutes;
         SettingsKeybind spawnKitKey, spawnLocksKey, spawnServoKey, deliverKey, mountEditorKey, testSirenKey;
         bool ready;
@@ -63,6 +63,8 @@ namespace CSE
             lockKey = Keybind.Add("cse_lock", "Alarm remote: lock / arm", KeyCode.L);
             unlockKey = Keybind.Add("cse_unlock", "Alarm remote: unlock / disarm", KeyCode.U);
             startKey = Keybind.Add("cse_remote_start", "Alarm remote: remote start / stop", KeyCode.H);
+            keysKey = Keybind.Add("cse_keys_hand", "Satsuma keys: take out / put away", KeyCode.Alpha3);
+            dropKeysKey = Keybind.Add("cse_keys_drop", "Satsuma keys: drop (while in hand)", KeyCode.G);
 
             Settings.AddHeader("Remote start");
             warmTemp = Settings.AddSlider("cse_warm_temp", "Warm up until engine reaches (C)", 40, 80, 60, null, null);
@@ -101,11 +103,18 @@ namespace CSE
                 Flasher.Init();
                 DoorLocks.Init();
                 AlarmSystem.Init(lockKey);
+                KeySystem.Init(keysKey, dropKeysKey);
                 RemoteStart.Init(warmTemp, warmMinutes);
                 MailOrder.Init();
                 MountEditor.Init(ModLoader.GetModSettingsFolder(this));
-                SaveSystem.Load(this);
+                var save = SaveSystem.Load(this);
+                KeySystem.Restore(save != null ? save.KeysPocket : null, save != null ? save.KeysIgnition : null,
+                    save != null && save.KeysSaved, save != null && save.FobOnKeys);
+                KeySystem.SpareGiven = save != null && save.SpareKeyGiven;
                 MailOrder.AfterLoad();
+                KeySystem.AfterLoad();
+                if (ModLoader.IsModPresent("Key"))
+                    ModConsole.Warning("[CSE] The Key mod is also installed: it hangs its own keyring on the ignition key. Disable it to avoid two keyrings.");
                 ready = true;
                 ModConsole.Print("[CSE] Car Systems Extended " + Version + " loaded, " + PartManager.Parts.Count + " parts restored");
             }
@@ -139,6 +148,7 @@ namespace CSE
                 else
                 {
                     Look.Update();
+                    KeySystem.Tick();
                     PartManager.Tick();
                     DoorLocks.Tick();
                     if (lockKey.GetKeybindDown()) AlarmSystem.OnLockPressed();
@@ -223,6 +233,7 @@ namespace CSE
                     MailOrder.Pending.Clear();
                     MailOrder.BrochureGiven = false;
                     MailOrder.AfterLoad(); // hands out a fresh brochure
+                    KeySystem.ResetState(); // keys back in the pocket (or lock), fresh spare key
                     SaveSystem.Save(this);
                 }
                 ModConsole.Print("[CSE] Mod reset" + (ready ? " in game" : ", takes effect when you load the game"));

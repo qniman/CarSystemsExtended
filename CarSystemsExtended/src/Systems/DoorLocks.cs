@@ -159,6 +159,25 @@ namespace CSE.Systems
             }
             if (!silent && d.T != null) Sfx.At(Sfx.Thunk, d.T.position, 0.8f);
             GameRefs.DrainBattery(0.02f);
+            if (!silent) CountActuation();
+        }
+
+        // Actuators pull a lot of current; hammering lock/unlock overheats the circuit.
+        const int SpamActuations = 8;
+        const float SpamWindow = 20f;
+        static readonly System.Collections.Generic.Queue<float> actuations = new System.Collections.Generic.Queue<float>();
+
+        static void CountActuation()
+        {
+            float now = Time.time;
+            actuations.Enqueue(now);
+            while (actuations.Count > 0 && now - actuations.Peek() > SpamWindow) actuations.Dequeue();
+            // one press works both doors; count presses, not doors
+            if (actuations.Count > SpamActuations * 2)
+            {
+                actuations.Clear();
+                AlarmSystem.BlowFuse("lock actuators hammered");
+            }
         }
 
         /// Cabin box in car space, used to tell "inside" from "outside".

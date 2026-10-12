@@ -29,6 +29,30 @@ namespace CSE.Core
             { "parcel_cod", new[] { "PARCEL, CASH ON DELIVERY {0} MK", "ПОСЫЛКА, НАЛОЖЕННЫЙ ПЛАТЁЖ {0} МК" } },
             { "open_parcel", new[] { "OPEN PARCEL (RMB)", "ОТКРЫТЬ ПОСЫЛКУ (ПКМ)" } },
             { "hold_brake", new[] { "HOLD THE BRAKE PEDAL", "УДЕРЖИВАЙТЕ ПЕДАЛЬ ТОРМОЗА" } },
+            { "keys_picked", new[] { "SATSUMA KEYS IN POCKET ({0} TO TAKE OUT)", "КЛЮЧИ САТСУМЫ В КАРМАНЕ ({0} — ДОСТАТЬ)" } },
+            { "keys_pocket_full", new[] { "ALREADY CARRYING KEYS", "КЛЮЧИ УЖЕ В КАРМАНЕ" } },
+            { "keys_none", new[] { "NO KEYS", "НЕТ КЛЮЧЕЙ" } },
+            { "keys_in_ignition", new[] { "KEYS ARE IN THE IGNITION", "КЛЮЧИ В ЗАМКЕ ЗАЖИГАНИЯ" } },
+            { "keys_take_out", new[] { "TAKE THE KEYS OUT ({0})", "ДОСТАНЬТЕ КЛЮЧИ ({0})" } },
+            { "fob_needs_keys", new[] { "PICK UP THE SATSUMA KEYS FIRST", "СНАЧАЛА ВОЗЬМИТЕ КЛЮЧИ САТСУМЫ" } },
+            { "keys_have_remote", new[] { "THE KEYS ALREADY HAVE A REMOTE", "НА КЛЮЧАХ УЖЕ ЕСТЬ БРЕЛОК" } },
+            { "battery_needs_remote", new[] { "NO ALARM REMOTE ON YOUR KEYS", "НА ВАШИХ КЛЮЧАХ НЕТ БРЕЛОКА" } },
+            { "battery_replace", new[] { "PRESS {0} TO REPLACE THE REMOTE BATTERY", "НАЖМИТЕ {0}, ЧТОБЫ ЗАМЕНИТЬ БАТАРЕЙКУ БРЕЛОКА" } },
+            { "part_cse_keys", new[] { "satsuma keys", "ключи сатсумы" } },
+            { "part_cse_keyring_anchor", new[] { "keyring", "кольцо для ключей" } },
+            { "part_cse_fob_battery", new[] { "a23 battery", "батарейка a23" } },
+            { "kit_batteries_title", new[] { "A23 12 V batteries (2 pcs)", "Батарейки A23 12 В (2 шт.)" } },
+            { "kit_batteries_blurb", new[] {
+                "Fresh batteries for the VARTIJA 95 remote. A weak battery shortens the range.",
+                "Свежие батарейки для брелока VARTIJA 95. Со слабой батарейкой брелок бьёт ближе." } },
+            { "kit_fuses_title", new[] { "15 A blade fuses (5 pcs)", "Предохранители 15 А (5 шт.)" } },
+            { "kit_fuses_blurb", new[] {
+                "Spare fuses for the alarm unit. Disconnect power before working on the wiring!",
+                "Запасные предохранители для блока сигнализации. Перед работой с проводкой снимите питание!" } },
+            { "kit_remote_title", new[] { "VARTIJA 95 spare remote", "Запасной брелок VARTIJA 95" } },
+            { "kit_remote_blurb", new[] {
+                "Lost your remote? Works with any VARTIJA 95 unit. Battery included.",
+                "Потеряли брелок? Подходит к любому блоку VARTIJA 95. Батарейка в комплекте." } },
 
             // ---- part names (shown by the game when looking at a loose part)
             { "part_cse_alarm_unit", new[] { "alarm unit", "блок сигнализации" } },

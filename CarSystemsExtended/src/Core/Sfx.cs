@@ -90,6 +90,30 @@ namespace CSE.Core
             }
         }
 
+        static AudioClip spark;
+
+        /// Short electric crackle of a fuse letting go.
+        public static AudioClip Spark
+        {
+            get
+            {
+                if (spark != null) return spark;
+                int n = Rate / 6;
+                var data = new float[n];
+                var rnd = new System.Random(3);
+                for (int i = 0; i < n; i++)
+                {
+                    float t = (float)i / n;
+                    // noise bursts with a fast decay and a crackly gate
+                    float gate = rnd.NextDouble() < 0.35 ? 1f : 0.15f;
+                    data[i] = (float)(rnd.NextDouble() * 2 - 1) * Mathf.Exp(-t * 7f) * gate * 0.9f;
+                }
+                spark = AudioClip.Create("cse_spark", n, 1, Rate, false);
+                spark.SetData(data, 0);
+                return spark;
+            }
+        }
+
         /// Plays a clip once at a world position.
         public static void At(AudioClip clip, Vector3 pos, float volume = 1f)
         {
@@ -189,7 +213,9 @@ namespace CSE.Core
         static AudioSource fobAlarmSource;
 
         /// Pager trill on the fob while the car's alarm is going off.
-        public static void SetFobAlarm(bool on)
+        /// at = the loose keyring the remote is on (a quiet 3D trill there, handy for finding
+        /// lost keys), or null when the keys are with the player (in the hand, 2D).
+        public static void SetFobAlarm(bool on, Transform at)
         {
             if (!on)
             {
@@ -198,13 +224,18 @@ namespace CSE.Core
             }
             if (fobAlarmSource == null)
             {
-                fobAlarmSource = FobSource.gameObject.AddComponent<AudioSource>();
+                var go = new GameObject("cse_fob_pager");
+                fobAlarmSource = go.AddComponent<AudioSource>();
                 fobAlarmSource.playOnAwake = false;
-                fobAlarmSource.spatialBlend = 0f;
                 fobAlarmSource.volume = 0.3f;
                 fobAlarmSource.loop = true;
+                fobAlarmSource.rolloffMode = AudioRolloffMode.Logarithmic;
+                fobAlarmSource.minDistance = 0.5f;
+                fobAlarmSource.maxDistance = 30f;
                 fobAlarmSource.clip = Melody("cse_fob_alarm", 3136, 0.1f, 2349, 0.1f, 3136, 0.1f, 2349, 0.1f, 0, 0.3f);
             }
+            fobAlarmSource.spatialBlend = at != null ? 1f : 0f;
+            if (at != null) fobAlarmSource.transform.position = at.position;
             if (!fobAlarmSource.isPlaying) fobAlarmSource.Play();
         }
 

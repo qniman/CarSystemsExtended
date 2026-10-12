@@ -17,8 +17,14 @@ namespace CSE.Save
         public List<PartSave> Parts = new List<PartSave>();
         public bool AlarmPower;
         public bool AlarmArmed;
+        /// Saves before physical keys: the remote was simply "on the keys".
         public bool FobOnKeys;
         public bool BrochureGiven;
+        /// Physical keys: set once keyring state is saved (KeyRing.Serialize, null = none there).
+        public bool KeysSaved;
+        public string KeysPocket;
+        public string KeysIgnition;
+        public bool SpareKeyGiven;
         public List<MailOrder.Order> Orders = new List<MailOrder.Order>();
     }
 
@@ -47,8 +53,11 @@ namespace CSE.Save
             {
                 AlarmPower = AlarmWiring.PowerConnected,
                 AlarmArmed = AlarmSystem.Current != AlarmSystem.Mode.Disarmed,
-                FobOnKeys = AlarmSystem.FobOnKeys,
                 BrochureGiven = MailOrder.BrochureGiven,
+                KeysSaved = true,
+                KeysPocket = KeySystem.Pocket != null ? KeySystem.Pocket.Serialize() : null,
+                KeysIgnition = KeySystem.Ignition != null ? KeySystem.Ignition.Serialize() : null,
+                SpareKeyGiven = KeySystem.SpareGiven,
                 Orders = new List<MailOrder.Order>(MailOrder.Pending),
             };
             foreach (var p in PartManager.Parts)
@@ -74,7 +83,9 @@ namespace CSE.Save
             SaveLoad.SerializeSaveFile(mod, data, File);
         }
 
-        public static void Load(Mod mod)
+        /// Restores parts and systems. Returns the save (null if there is none) for the systems
+        /// that need to restore after everything else is in place (keys).
+        public static SaveData Load(Mod mod)
         {
             SaveData data;
             try
@@ -84,9 +95,9 @@ namespace CSE.Save
             catch (Exception e)
             {
                 ModConsole.Warning("[CSE] Could not read save, starting fresh: " + e.Message);
-                return;
+                return null;
             }
-            if (data == null || data.Parts == null) return;
+            if (data == null || data.Parts == null) return null;
 
             // Spawn everything loose first, then install in catalog order so parents exist
             // before the parts that mount onto them.
@@ -101,8 +112,10 @@ namespace CSE.Save
                 }
                 var part = PartManager.Spawn(def, ToV(s.Pos), ToQ(s.Rot), s.Uid);
                 part.Damaged = s.Damaged;
+                part.ApplyDamagedLook();
                 part.Data = s.Data;
                 if (s.Price > 0) part.SetForSale(s.Price);
+                if (def == PartCatalog.Keys) KeyRingView.Decorate(part, KeyRing.Parse(s.Data));
                 spawned.Add(new KeyValuePair<Part, PartSave>(part, s));
             }
 
@@ -120,9 +133,10 @@ namespace CSE.Save
 
             AlarmWiring.PowerConnected = data.AlarmPower;
             AlarmWiring.Refresh();
-            AlarmSystem.Restore(data.AlarmArmed, data.FobOnKeys);
+            AlarmSystem.Restore(data.AlarmArmed);
             MailOrder.BrochureGiven = data.BrochureGiven;
             if (data.Orders != null) MailOrder.Pending.AddRange(data.Orders);
+            return data;
         }
 
         static float[] V(Vector3 v) { return new[] { v.x, v.y, v.z }; }

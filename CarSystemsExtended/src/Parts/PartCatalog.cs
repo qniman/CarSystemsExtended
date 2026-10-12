@@ -141,11 +141,58 @@ namespace CSE.Parts
             ColliderSize = new Vector3(0.035f, 0.014f, 0.06f),
             Build = t =>
             {
+                // Three buttons: lock, unlock, remote start. Keyring hole at the back end (-Z).
                 Shapes.Add(t, PrimitiveType.Cube, Vector3.zero, new Vector3(0.032f, 0.012f, 0.056f), Shapes.Black);
-                Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, 0.0065f, 0.008f), new Vector3(0.012f, 0.001f, 0.012f), Shapes.DarkGrey);
-                Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, 0.0065f, -0.01f), new Vector3(0.012f, 0.001f, 0.012f), Shapes.DarkGrey);
-                Shapes.Add(t, PrimitiveType.Sphere, new Vector3(0f, 0.006f, 0.022f), new Vector3(0.004f, 0.004f, 0.004f), Shapes.LedRed);
-                Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, 0f, -0.032f), new Vector3(0.012f, 0.0015f, 0.012f), Shapes.Steel, new Vector3(0, 0, 90));
+                Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(-0.008f, 0.0065f, 0.01f), new Vector3(0.01f, 0.001f, 0.01f), Shapes.DarkGrey);
+                Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0.008f, 0.0065f, 0.01f), new Vector3(0.01f, 0.001f, 0.01f), Shapes.DarkGrey);
+                Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, 0.0065f, -0.008f), new Vector3(0.01f, 0.001f, 0.01f), new Color(0.45f, 0.08f, 0.06f));
+                Shapes.AddLed(t, new Vector3(0f, 0.006f, 0.022f), 0.004f);
+                Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, 0f, -0.03f), new Vector3(0.008f, 0.0015f, 0.008f), Shapes.Steel, new Vector3(0, 0, 90));
+            },
+        };
+
+        /// Satsuma keys as an item. The keyring state (remote, battery) lives in Part.Data and
+        /// KeySystem; picking it up puts it in the pocket.
+        public static readonly PartDef Keys = new PartDef
+        {
+            Id = "cse_keys",
+            Name = "satsuma keys",
+            Mass = 0.06f,
+            ColliderSize = new Vector3(0.04f, 0.02f, 0.08f),
+            ColliderCenter = new Vector3(0f, 0f, -0.025f),
+            Build = Systems.KeyRingView.BuildKey,
+        };
+
+        /// Where the keyring hangs on the game's key in the ignition. Never spawned; it only
+        /// gives the mount editor something to move (F6, Home to it, key must be in the lock).
+        public static readonly PartDef KeyringAnchor = new PartDef
+        {
+            Id = "cse_keyring_anchor",
+            Name = "keyring anchor",
+            Mounts = new[]
+            {
+                new MountDef
+                {
+                    Label = "ring on the ignition key",
+                    RefPath = "Dashboard/Steering/steering_column2/Ignition/Keys/Key",
+                    AttachToRef = true,
+                    Offset = new Vector3(0f, -0.01f, -0.06f),
+                },
+            },
+            Build = t => Shapes.Add(t, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.026f, 0.0015f, 0.026f), Shapes.Steel, new Vector3(90, 0, 0)),
+        };
+
+        /// 12 V A23 battery for the remote.
+        public static readonly PartDef FobBattery = new PartDef
+        {
+            Id = "cse_fob_battery",
+            Name = "a23 battery",
+            Mass = 0.01f,
+            ColliderSize = new Vector3(0.02f, 0.03f, 0.02f),
+            Build = t =>
+            {
+                Shapes.Add(t, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.01f, 0.0125f, 0.01f), new Color(0.1f, 0.25f, 0.6f));
+                Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, 0.0128f, 0f), new Vector3(0.004f, 0.0006f, 0.004f), Shapes.Steel);
             },
         };
 
@@ -282,6 +329,7 @@ namespace CSE.Parts
         {
             AlarmUnit, Siren, Fuse, StatusLed, Fob, LockActuator, ChokeServo,
             Brochure, Envelope, Parcel,
+            Keys, KeyringAnchor, FobBattery,
         };
 
         public static class Kits
@@ -289,6 +337,9 @@ namespace CSE.Parts
             public static readonly PartDef[] Alarm = { AlarmUnit, Siren, Fuse, Fuse, StatusLed, Fob };
             public static readonly PartDef[] DoorLocks = { LockActuator, LockActuator };
             public static readonly PartDef[] ChokeServo = { PartCatalog.ChokeServo };
+            public static readonly PartDef[] Batteries = { FobBattery, FobBattery };
+            public static readonly PartDef[] Fuses = { Fuse, Fuse, Fuse, Fuse, Fuse };
+            public static readonly PartDef[] Remote = { Fob };
         }
     }
 }

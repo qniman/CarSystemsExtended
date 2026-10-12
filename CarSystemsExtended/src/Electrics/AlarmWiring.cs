@@ -19,6 +19,7 @@ namespace CSE.Electrics
     public static class AlarmWiring
     {
         const float Reach = 0.12f; // the game uses 0.1 for its own wiring points
+        const float LiveWiringFuseChance = 0.25f;
 
         public static bool PowerConnected;
 
@@ -198,6 +199,9 @@ namespace CSE.Electrics
             }
             if (!b.Part.Def.Wired || b.Part.WireConnected) return false;
             b.Part.WireConnected = true;
+            // Plugging a device in with the unit live can short it and take the fuse.
+            if (Systems.AlarmSystem.Powered && Random.value < LiveWiringFuseChance)
+                Systems.AlarmSystem.BlowFuse("wired " + b.Part.Uid + " with power on");
             return true;
         }
 

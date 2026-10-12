@@ -204,6 +204,15 @@ namespace CSE.Parts
             transform.localRotation = rot;
         }
 
+        /// Shows a damaged part as such (a blown fuse goes dark). Safe to call any time.
+        public void ApplyDamagedLook()
+        {
+            var body = transform.Find("body");
+            if (body == null) return;
+            var r = body.GetComponent<Renderer>();
+            if (r != null && Damaged) r.material.color = new Color(0.05f, 0.07f, 0.12f);
+        }
+
         public void OnBoltsChanged()
         {
             PartManager.OnPartChanged(this);

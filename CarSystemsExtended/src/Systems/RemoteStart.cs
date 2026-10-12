@@ -141,10 +141,15 @@ namespace CSE.Systems
 
         public static void OnButton()
         {
-            if (!AlarmSystem.FobWorks || !available) return;
+            if (!available) return;
+            if (!AlarmSystem.HandFobAlive)
+            {
+                KeySystem.RemoteNotInHand();
+                return;
+            }
             Sfx.FobSend();
-            // Out of power the car simply never answers.
-            if (!AlarmSystem.Powered) return;
+            // Out of range or out of power the car simply never answers.
+            if (!AlarmSystem.PressFob() || !AlarmSystem.Powered) return;
             commandPending = true;
             commandAt = Time.time + SignalDelay;
         }
@@ -174,7 +179,7 @@ namespace CSE.Systems
             if (reply != Reply.None && Time.time >= replyAt)
             {
                 // The car's transmitter reaches further than the fob's.
-                if (AlarmSystem.FobHears)
+                if (AlarmSystem.FobHearsAny)
                 {
                     if (reply == Reply.Ok) Sfx.FobOk();
                     else if (reply == Reply.Fail) Sfx.FobFail();
