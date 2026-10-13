@@ -45,9 +45,24 @@ namespace CSE.Systems
         /// Key, bow and ring. Ring centre at the local origin, key along -Z.
         public static void BuildKey(Transform t)
         {
+            var m = Models.BuildOr(t, "key", KeyPlaceholder);
+            // where a remote hangs: the bottom of the ring on the model
+            var pivot = new GameObject("fob_pivot").transform;
+            pivot.parent = t;
+            pivot.localPosition = m != null ? m.Marker("fob", Vector3.zero) : Vector3.zero;
+            pivot.localRotation = Quaternion.identity;
+        }
+
+        static void KeyPlaceholder(Transform t)
+        {
             Shapes.Add(t, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.026f, 0.0015f, 0.026f), Shapes.Steel, Vector3.zero, "ring");
             Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, 0f, -0.022f), new Vector3(0.022f, 0.004f, 0.02f), Shapes.Black, Vector3.zero, "bow");
             Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, 0f, -0.05f), new Vector3(0.008f, 0.002f, 0.04f), Shapes.Steel, Vector3.zero, "blade");
+        }
+
+        static Transform FobPivot(Transform keys)
+        {
+            return keys.Find("fob_pivot") ?? keys;
         }
 
         /// A loose keyring in the world shows its remote rigidly attached.
@@ -58,8 +73,9 @@ namespace CSE.Systems
             if (!ring.Fob) return;
             var fob = new GameObject("fob").transform;
             fob.parent = keys.transform;
-            fob.localPosition = new Vector3(0.018f, 0f, 0.028f);
-            fob.localRotation = Quaternion.Euler(0f, 30f, 0f);
+            // lying flat next to the key, its lug on the ring
+            fob.localRotation = Quaternion.Euler(0f, 160f, 0f);
+            fob.localPosition = FobPivot(keys.transform).localPosition - fob.localRotation * PartCatalog.FobRingHole;
             PartCatalog.Fob.Build(fob);
         }
 
@@ -92,7 +108,7 @@ namespace CSE.Systems
             hand.transform.localRotation = Quaternion.Euler(HandEuler);
             BuildKey(hand.transform);
             handHasFob = ring.Fob;
-            if (ring.Fob) handSwing = Swing.Create(hand.transform, Swing.Feel.Hand);
+            if (ring.Fob) handSwing = Swing.Create(FobPivot(hand.transform), Swing.Feel.Hand);
             SetLayer(hand.transform, VisibleLayer(cam));
             ShowIcon(true);
         }
@@ -231,7 +247,10 @@ namespace CSE.Systems
     public class Swing : MonoBehaviour
     {
         // Keyring hole of the remote, in remote space (back end, see PartCatalog.Fob).
-        static readonly Vector3 Hole = new Vector3(0f, 0f, -0.03f);
+        static Vector3 Hole
+        {
+            get { return PartCatalog.FobRingHole; }
+        }
         const float Length = 0.032f;   // pivot to the remote's centre of mass
         const float MaxAccel = 60f;    // m/s^2, ignore anything wilder (teleports, first frame)
         const int Substeps = 4;

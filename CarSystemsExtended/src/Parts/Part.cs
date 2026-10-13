@@ -48,8 +48,9 @@ namespace CSE.Parts
 
             // Paper-thin boxes tunnel through floors; give every collider some body.
             var col = go.AddComponent<BoxCollider>();
-            col.size = Vector3.Max(def.ColliderSize, Vector3.one * MinColliderSize);
-            col.center = def.ColliderCenter;
+            var model = def.Model != null ? Models.Get(def.Model) : null;
+            col.size = Vector3.Max(model != null ? model.Bounds.size : def.ColliderSize, Vector3.one * MinColliderSize);
+            col.center = model != null ? model.Bounds.center : def.ColliderCenter;
 
             var part = go.AddComponent<Part>();
             part.Def = def;

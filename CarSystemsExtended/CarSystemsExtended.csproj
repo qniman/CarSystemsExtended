@@ -30,6 +30,8 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets\icon.png" LogicalName="CSE.icon.png" />
     <EmbeddedResource Include="Assets\catalog_cover.jpg" LogicalName="CSE.catalog_cover.jpg" />
+    <!-- part models built in Blender by tools/blender/build_*.py -->
+    <EmbeddedResource Include="Assets\models\*.obj;Assets\models\*.mtl" LogicalName="CSE.models.%(Filename)%(Extension)" />
   </ItemGroup>
   <Target Name="CopyToMods" AfterTargets="Build">
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GameDir)\Mods" />

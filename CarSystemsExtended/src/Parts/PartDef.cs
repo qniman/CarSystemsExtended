@@ -55,6 +55,9 @@ namespace CSE.Parts
         public Vector3 PlugPos;
         /// Builds placeholder visuals under the part root.
         public Action<Transform> Build;
+        /// Embedded Blender model (Assets/models/&lt;Model&gt;.obj); when it loads, the collider
+        /// follows its bounds. Build is expected to use it (Models.BuildOr).
+        public string Model;
         /// Called every frame while the player holds the part. Return true to skip assembly.
         public Func<Part, bool> OnHeld;
         /// Called every frame while the player looks at the part lying loose (not held).

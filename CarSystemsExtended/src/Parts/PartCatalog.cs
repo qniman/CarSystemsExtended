@@ -139,7 +139,27 @@ namespace CSE.Parts
             Name = "alarm remote",
             Mass = 0.05f,
             ColliderSize = new Vector3(0.035f, 0.014f, 0.06f),
+            Model = "fob",
             Build = t =>
+            {
+                // Blender model with a glowing LED on its marker; placeholder shapes without it.
+                var m = Models.BuildOr(t, "fob", FobPlaceholder);
+                if (m != null) Shapes.AddLed(t, m.Marker("led", new Vector3(0f, 0.006f, 0.024f)), 0.0034f);
+            },
+        };
+
+        /// Where the remote hangs from a keyring, in remote space (its lug hole).
+        public static Vector3 FobRingHole
+        {
+            get
+            {
+                var m = Models.Get("fob");
+                return m != null ? m.Marker("ring", new Vector3(0f, 0f, -0.03f)) : new Vector3(0f, 0f, -0.03f);
+            }
+        }
+
+        static void FobPlaceholder(Transform t)
+        {
             {
                 // Three buttons: lock, unlock, remote start. Keyring hole at the back end (-Z).
                 Shapes.Add(t, PrimitiveType.Cube, Vector3.zero, new Vector3(0.032f, 0.012f, 0.056f), Shapes.Black);
@@ -148,8 +168,8 @@ namespace CSE.Parts
                 Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, 0.0065f, -0.008f), new Vector3(0.01f, 0.001f, 0.01f), new Color(0.45f, 0.08f, 0.06f));
                 Shapes.AddLed(t, new Vector3(0f, 0.006f, 0.022f), 0.004f);
                 Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, 0f, -0.03f), new Vector3(0.008f, 0.0015f, 0.008f), Shapes.Steel, new Vector3(0, 0, 90));
-            },
-        };
+            }
+        }
 
         /// Satsuma keys as an item. The keyring state (remote, battery) lives in Part.Data and
         /// KeySystem; picking it up puts it in the pocket.
@@ -160,6 +180,7 @@ namespace CSE.Parts
             Mass = 0.06f,
             ColliderSize = new Vector3(0.04f, 0.02f, 0.08f),
             ColliderCenter = new Vector3(0f, 0f, -0.025f),
+            Model = "key",
             Build = Systems.KeyRingView.BuildKey,
         };
 
