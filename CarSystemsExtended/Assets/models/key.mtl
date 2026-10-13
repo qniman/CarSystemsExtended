@@ -1,9 +1,3 @@
-newmtl steel
-Kd 0.5500 0.5500 0.5700
-d 1.000
-Ns 65.0
-Pm 1.000
-
 newmtl key_bow
 Kd 0.0300 0.0300 0.0320
 d 1.000

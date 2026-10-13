@@ -306,7 +306,8 @@ def export(col, path_noext, center_on_bounds=True):
         f.write("mtllib {}.mtl\n".format(name))
         for mk in markers:
             p = _to_part(mk.matrix_world.translation - center)
-            f.write("#marker {} {:.5f} {:.5f} {:.5f}\n".format(mk.name, *p))
+            # Blender names are global: a second "ring" becomes "ring.001"
+            f.write("#marker {} {:.5f} {:.5f} {:.5f}\n".format(mk.name.split(".")[0], *p))
         # shared positions / normals, written once
         pos_index, nrm_index = {}, {}
         pos_lines, nrm_lines, faces = [], [], []

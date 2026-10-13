@@ -1,12 +1,15 @@
+using System;
 using CSE.Core;
 using CSE.Parts;
 using MSCLoader;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace CSE.Systems
 {
-    // What the keyring looks like in the player's hand and in the ignition, with the remote
-    // swinging from the ring (see Swing).
+    // What the keyring looks like in the player's hand and in the ignition. A chain like the real
+    // thing: the key is held (or sits in the lock), the split ring hangs from the hole in its bow
+    // and swings, and the remote hangs from the bottom of the ring and swings from that.
     public static class KeyRingView
     {
         // Keys held in the lower right of the view, blade forward, ring towards the player.
@@ -15,11 +18,12 @@ namespace CSE.Systems
 
         static GameObject hand;
         static bool handHasFob;
-        static Swing handSwing;
+        static Swing handFob;
 
         static GameObject ignition;
-        static Swing ignitionSwing;
+        static bool ignitionHasFob;
         static Transform keyMesh;
+        static Renderer hiddenGameKey;
 
         static float blinkUntil;
 
@@ -32,7 +36,8 @@ namespace CSE.Systems
         {
             keyMesh = GameRefs.FindInCar("Dashboard/Steering/steering_column2/Ignition/Keys/Key");
             hand = ignition = null;
-            handSwing = ignitionSwing = null;
+            handFob = null;
+            hiddenGameKey = null;
             var mode = GameObject.Find("GUI/Indicators/Mode");
             var r = mode != null ? mode.GetComponent<Renderer>() : null;
             modeIcon = r != null ? r.sharedMaterial : null;
@@ -40,42 +45,91 @@ namespace CSE.Systems
             if (modeIcon == null) ModConsole.Warning("[CSE] HUD mode indicator not found, no keys icon");
         }
 
-        // ---------------------------------------------------------------- building
+        // ---------------------------------------------------------------- pieces
 
-        /// Key, bow and ring. Ring centre at the local origin, key along -Z.
-        public static void BuildKey(Transform t)
+        // keyring model: origin where it passes the key's hole, hanging along +Z
+        static Vector3 RingFobPoint
         {
-            var m = Models.BuildOr(t, "key", KeyPlaceholder);
-            // where a remote hangs: the bottom of the ring on the model
-            var pivot = new GameObject("fob_pivot").transform;
-            pivot.parent = t;
-            pivot.localPosition = m != null ? m.Marker("fob", Vector3.zero) : Vector3.zero;
-            pivot.localRotation = Quaternion.identity;
+            get
+            {
+                var m = Models.Get("keyring");
+                return m != null ? m.Marker("fob", new Vector3(0f, 0f, 0.024f)) : new Vector3(0f, 0f, 0.024f);
+            }
+        }
+
+        static float RingLength
+        {
+            get
+            {
+                var m = Models.Get("keyring");
+                return m != null ? m.Marker("center", new Vector3(0f, 0f, 0.012f)).magnitude : 0.012f;
+            }
+        }
+
+        static Vector3 KeyRingHole(Model key)
+        {
+            return key != null ? key.Marker("ring", Vector3.zero) : Vector3.zero;
+        }
+
+        static void BuildRing(Transform t)
+        {
+            Models.BuildOr(t, "keyring", r =>
+                Shapes.Add(r, PrimitiveType.Cylinder, new Vector3(0f, 0f, 0.012f), new Vector3(0.024f, 0.0015f, 0.024f),
+                    Shapes.Steel, new Vector3(0, 0, 90), "ring"));
         }
 
         static void KeyPlaceholder(Transform t)
         {
-            Shapes.Add(t, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.026f, 0.0015f, 0.026f), Shapes.Steel, Vector3.zero, "ring");
-            Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, 0f, -0.022f), new Vector3(0.022f, 0.004f, 0.02f), Shapes.Black, Vector3.zero, "bow");
-            Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, 0f, -0.05f), new Vector3(0.008f, 0.002f, 0.04f), Shapes.Steel, Vector3.zero, "blade");
+            Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, 0f, -0.01f), new Vector3(0.022f, 0.004f, 0.02f), Shapes.Black, Vector3.zero, "bow");
+            Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, 0f, -0.04f), new Vector3(0.008f, 0.002f, 0.04f), Shapes.Steel, Vector3.zero, "blade");
         }
 
-        static Transform FobPivot(Transform keys)
+        static Transform Child(Transform parent, string name, Vector3 localPos)
         {
-            return keys.Find("fob_pivot") ?? keys;
+            var c = new GameObject(name).transform;
+            c.parent = parent;
+            c.localPosition = localPos;
+            c.localRotation = Quaternion.identity;
+            c.localScale = Vector3.one;
+            return c;
         }
 
-        /// A loose keyring in the world shows its remote rigidly attached.
+        /// Static keyring (a loose item in the world, the mount ghost): key, ring hanging straight
+        /// back from the bow, and a "fob_pivot" at the bottom of the ring.
+        public static void BuildKey(Transform t)
+        {
+            var key = Models.BuildOr(t, "key", KeyPlaceholder);
+            var ring = Child(t, "keyring", KeyRingHole(key));
+            BuildRing(ring);
+            Child(ring, "fob_pivot", RingFobPoint);
+        }
+
+        /// Key held rigidly at t, with the ring and (optionally) the remote swinging below it.
+        /// Returns the remote's swing (for its LED) or null.
+        static Swing BuildSwingingChain(Transform t, bool withKey, bool withFob, Swing.Feel feel)
+        {
+            var key = withKey ? Models.BuildOr(t, "key", KeyPlaceholder) : null;
+            var ringPivot = Child(t, "ring_pivot", KeyRingHole(key));
+            var ring = Swing.Create(ringPivot, feel, BuildRing, Vector3.zero, RingLength, "cse_keyring_swinging");
+            if (!withFob) return null;
+            var fobPivot = Child(ring.transform, "fob_pivot", RingFobPoint);
+            var fob = Swing.Create(fobPivot, feel, PartCatalog.Fob.Build, PartCatalog.FobRingHole, 0.032f, "cse_fob_swinging");
+            ring.Child = fob; // stepped right after the ring, so the chain moves as one
+            return fob;
+        }
+
+        /// A loose keyring in the world shows its remote rigidly attached below the ring.
         public static void Decorate(Part keys, KeyRing ring)
         {
             var old = keys.transform.Find("fob");
             if (old != null) Object.Destroy(old.gameObject);
             if (!ring.Fob) return;
+            var pivot = keys.transform.Find("keyring/fob_pivot");
             var fob = new GameObject("fob").transform;
             fob.parent = keys.transform;
-            // lying flat next to the key, its lug on the ring
-            fob.localRotation = Quaternion.Euler(0f, 160f, 0f);
-            fob.localPosition = FobPivot(keys.transform).localPosition - fob.localRotation * PartCatalog.FobRingHole;
+            fob.localRotation = Quaternion.Euler(0f, 12f, 0f);
+            Vector3 at = pivot != null ? keys.transform.InverseTransformPoint(pivot.position) : Vector3.zero;
+            fob.localPosition = at - fob.localRotation * PartCatalog.FobRingHole;
             PartCatalog.Fob.Build(fob);
         }
 
@@ -106,9 +160,8 @@ namespace CSE.Systems
             hand.transform.parent = cam.transform;
             hand.transform.localPosition = HandPos;
             hand.transform.localRotation = Quaternion.Euler(HandEuler);
-            BuildKey(hand.transform);
             handHasFob = ring.Fob;
-            if (ring.Fob) handSwing = Swing.Create(FobPivot(hand.transform), Swing.Feel.Hand);
+            handFob = BuildSwingingChain(hand.transform, true, ring.Fob, Swing.Feel.Hand);
             SetLayer(hand.transform, VisibleLayer(cam));
             ShowIcon(true);
         }
@@ -121,7 +174,7 @@ namespace CSE.Systems
                 ShowIcon(false);
             }
             hand = null;
-            handSwing = null;
+            handFob = null;
         }
 
         /// Remote LED flash when a button is pressed.
@@ -197,7 +250,6 @@ namespace CSE.Systems
             if (mf == null || mf.sharedMesh == null) return false;
             var b = mf.sharedMesh.bounds;
             var t = mf.transform;
-            // bounds axes in world space, with their world lengths
             Vector3[] axes = { t.TransformVector(new Vector3(b.extents.x, 0, 0)),
                                t.TransformVector(new Vector3(0, b.extents.y, 0)),
                                t.TransformVector(new Vector3(0, 0, b.extents.z)) };
@@ -218,31 +270,30 @@ namespace CSE.Systems
             return true;
         }
 
-        static Renderer hiddenGameKey;
-
         /// Our key model takes the place of the game's key (hidden, but the object stays active:
-        /// its active state is how we know the key is in the lock). Without the model, only a
-        /// keyring is added at the game key's bow.
-        static void BuildIgnition()
+        /// its active state is how we know the key is in the lock), with the ring and remote
+        /// swinging from it. Without the model only the ring is hung at the game key's bow.
+        static void BuildIgnition(KeyRing ring)
         {
             DestroyIgnition();
             GameKey k;
             bool measured = MeasureGameKey(out k);
             var model = Models.Get("key");
 
-            ignition = new GameObject("cse_keyring_in_ignition");
+            ignition = new GameObject("cse_keys_in_ignition");
             // Under the turning "Keys" pivot rather than the key mesh: the mesh may be scaled
             // non-uniformly, which would skew a rotated child.
             ignition.transform.parent = keyMesh.parent ?? keyMesh;
             float parentScale = ignition.transform.parent.lossyScale.x;
             ignition.transform.localScale = Vector3.one / (Mathf.Abs(parentScale) > 1e-4f ? parentScale : 1f);
+            ignitionHasFob = ring.Fob;
 
-            if (model != null && measured)
+            bool useModel = model != null && measured;
+            if (useModel)
             {
-                // Model space: ring at the origin, blade running to -Z, flat side facing +Y.
+                // Model space: bow hole at the origin, blade running to -Z, flat side facing +Y.
                 ignition.transform.rotation = Quaternion.LookRotation((k.Bow - k.Tip).normalized, k.Flat);
                 ignition.transform.position = k.Tip - ignition.transform.rotation * new Vector3(0f, 0f, model.Bounds.min.z);
-                BuildKey(ignition.transform);
                 if (k.Renderer != null)
                 {
                     k.Renderer.enabled = false;
@@ -253,11 +304,8 @@ namespace CSE.Systems
             {
                 ignition.transform.position = measured ? k.Bow : keyMesh.position;
                 ignition.transform.rotation = keyMesh.rotation;
-                var pivot = new GameObject("fob_pivot").transform;
-                pivot.parent = ignition.transform;
-                pivot.localPosition = Vector3.zero;
-                Shapes.Add(ignition.transform, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.024f, 0.0015f, 0.024f), Shapes.Steel, new Vector3(0, 0, 90), "ring");
             }
+            BuildSwingingChain(ignition.transform, useModel, ring.Fob, Swing.Feel.Car);
         }
 
         static void DestroyIgnition()
@@ -266,7 +314,6 @@ namespace CSE.Systems
             hiddenGameKey = null;
             if (ignition != null) Object.Destroy(ignition);
             ignition = null;
-            ignitionSwing = null;
         }
 
         // ---------------------------------------------------------------- frame
@@ -277,30 +324,19 @@ namespace CSE.Systems
             if (inHand != null && hand != null && handHasFob != inHand.Fob) ShowInHand(inHand);
 
             bool wantIgnition = inIgnition != null && keyMesh != null && keyMesh.gameObject.activeInHierarchy;
-            if (wantIgnition && ignition == null) BuildIgnition();
+            if (wantIgnition && (ignition == null || ignitionHasFob != inIgnition.Fob)) BuildIgnition(inIgnition);
             if (!wantIgnition && ignition != null) DestroyIgnition();
-            if (ignition != null && inIgnition.Fob != (ignitionSwing != null))
-            {
-                if (ignitionSwing != null) Object.Destroy(ignitionSwing.gameObject);
-                ignitionSwing = inIgnition.Fob ? Swing.Create(FobPivot(ignition.transform), Swing.Feel.Car) : null;
-            }
 
-            if (handSwing != null) handSwing.SetLed(Time.time < blinkUntil, inHand != null ? inHand.Battery : 0f);
+            if (handFob != null) handFob.SetLed(Time.time < blinkUntil, inHand != null ? inHand.Battery : 0f);
         }
     }
 
-    // The remote hanging from the keyring as a pendulum, simulated here rather than with a
-    // physics joint: the hand and the car move outside the physics step (interpolated, camera
-    // driven), so a joint lags and jitters. Every rendered frame the pivot's real acceleration
-    // is measured and the remote swings under gravity minus that acceleration, with damping.
+    // Something hanging from a pivot - the keyring, the remote - simulated as a pendulum rather
+    // than with a physics joint: the hand and the car move outside the physics step (camera
+    // driven, interpolated), so a joint lags and jitters. Every rendered frame the pivot's real
+    // acceleration is measured and the piece swings under gravity minus that acceleration.
     public class Swing : MonoBehaviour
     {
-        // Keyring hole of the remote, in remote space (back end, see PartCatalog.Fob).
-        static Vector3 Hole
-        {
-            get { return PartCatalog.FobRingHole; }
-        }
-        const float Length = 0.032f;   // pivot to the remote's centre of mass
         const float MaxAccel = 60f;    // m/s^2, ignore anything wilder (teleports, first frame)
         const int Substeps = 4;
 
@@ -308,7 +344,7 @@ namespace CSE.Systems
         /// mouse look would make it twitch, and a real hand absorbs most of that anyway.
         public struct Feel
         {
-            public float Response;  // share of the pivot's acceleration that reaches the remote
+            public float Response;  // share of the pivot's acceleration that reaches the piece
             public float Smoothing; // 0..1 per frame, lower = smoother acceleration
             public float Damping;   // 1/s, how fast a swing dies down
 
@@ -316,23 +352,33 @@ namespace CSE.Systems
             public static readonly Feel Hand = new Feel { Response = 0.3f, Smoothing = 0.12f, Damping = 6f };
         }
 
+        /// Hangs below this one and is stepped right after it (the remote on the ring).
+        public Swing Child;
+
         Feel feel;
         Transform pivot;
-        Vector3 dir = Vector3.down;    // pivot -> remote, world space
+        Vector3 hole;                  // hanging point in the piece's own space
+        float length;                  // pivot to centre of mass
+        bool driven;                   // stepped by a parent Swing instead of LateUpdate
+        Vector3 dir = Vector3.down;    // pivot -> piece, world space
         Vector3 omega;                 // rad/s, world space
         Vector3 lastPos, lastVel, accel;
         int frames;
         Material led;
 
-        public static Swing Create(Transform pivot, Feel feel)
+        /// The piece (built by `build`, hanging from `hole` along its +Z) swinging below `pivot`.
+        public static Swing Create(Transform pivot, Feel feel, Action<Transform> build, Vector3 hole, float length, string name)
         {
-            var go = new GameObject("cse_fob_swinging");
+            var go = new GameObject(name);
             go.transform.parent = pivot;
             go.layer = pivot.gameObject.layer;
-            PartCatalog.Fob.Build(go.transform);
+            build(go.transform);
             var s = go.AddComponent<Swing>();
             s.pivot = pivot;
             s.feel = feel;
+            s.hole = hole;
+            s.length = Mathf.Max(0.005f, length);
+            s.lastPos = pivot.position;
             var ledT = go.transform.Find("led");
             s.led = ledT != null ? ledT.GetComponent<Renderer>().material : null;
             s.Place();
@@ -341,7 +387,11 @@ namespace CSE.Systems
 
         void LateUpdate()
         {
-            float dt = Time.deltaTime;
+            if (!driven) Step(Time.deltaTime);
+        }
+
+        void Step(float dt)
+        {
             if (pivot == null || dt <= 0f) return;
 
             Vector3 p = pivot.position;
@@ -352,12 +402,12 @@ namespace CSE.Systems
             if (++frames < 3 || a.sqrMagnitude > 25f * MaxAccel * MaxAccel) a = Vector3.zero;
             accel = Vector3.Lerp(accel, Vector3.ClampMagnitude(a, MaxAccel) * feel.Response, feel.Smoothing);
 
-            // In the pivot's frame the remote feels gravity minus the pivot's acceleration.
+            // In the pivot's frame the piece feels gravity minus the pivot's acceleration.
             Vector3 g = Physics.gravity - accel;
             float h = dt / Substeps;
             for (int i = 0; i < Substeps; i++)
             {
-                Vector3 alpha = Vector3.Cross(dir, g) / Length - omega * feel.Damping;
+                Vector3 alpha = Vector3.Cross(dir, g) / length - omega * feel.Damping;
                 omega += alpha * h;
                 omega -= Vector3.Project(omega, dir); // no spin about its own hanging axis
                 float speed = omega.magnitude;
@@ -365,6 +415,12 @@ namespace CSE.Systems
                 dir.Normalize();
             }
             Place();
+
+            if (Child != null)
+            {
+                Child.driven = true;
+                Child.Step(dt);
+            }
         }
 
         void Place()
@@ -373,7 +429,7 @@ namespace CSE.Systems
             Vector3 up = Vector3.ProjectOnPlane(pivot.forward, dir);
             if (up.sqrMagnitude < 1e-6f) up = Vector3.ProjectOnPlane(pivot.up, dir);
             transform.rotation = Quaternion.LookRotation(dir, up);
-            transform.position = pivot.position - transform.rotation * Hole;
+            transform.position = pivot.position - transform.rotation * hole;
         }
 
         public void SetLed(bool on, float battery)
