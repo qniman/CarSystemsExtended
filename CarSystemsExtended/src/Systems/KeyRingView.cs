@@ -344,12 +344,13 @@ namespace CSE.Systems
         /// mouse look would make it twitch, and a real hand absorbs most of that anyway.
         public struct Feel
         {
-            public float Response;  // share of the pivot's acceleration that reaches the piece
-            public float Smoothing; // 0..1 per frame, lower = smoother acceleration
-            public float Damping;   // 1/s, how fast a swing dies down
+            public float Response;   // share of the pivot's acceleration that reaches the piece
+            public float SmoothTime; // s, time constant of the acceleration filter (frame-rate independent)
+            public float DeadZone;   // m/s^2, smaller accelerations are treated as none (frame jitter)
+            public float Damping;    // 1/s, how fast a swing dies down
 
-            public static readonly Feel Car = new Feel { Response = 1f, Smoothing = 0.5f, Damping = 3f };
-            public static readonly Feel Hand = new Feel { Response = 0.3f, Smoothing = 0.12f, Damping = 6f };
+            public static readonly Feel Car = new Feel { Response = 1f, SmoothTime = 0.05f, DeadZone = 0.4f, Damping = 3f };
+            public static readonly Feel Hand = new Feel { Response = 0.35f, SmoothTime = 0.15f, DeadZone = 1.5f, Damping = 6f };
         }
 
         /// Hangs below this one and is stepped right after it (the remote on the ring).
@@ -400,7 +401,12 @@ namespace CSE.Systems
             lastPos = p;
             lastVel = v;
             if (++frames < 3 || a.sqrMagnitude > 25f * MaxAccel * MaxAccel) a = Vector3.zero;
-            accel = Vector3.Lerp(accel, Vector3.ClampMagnitude(a, MaxAccel) * feel.Response, feel.Smoothing);
+            a = Vector3.ClampMagnitude(a, MaxAccel);
+            // Frame-time jitter and camera wobble make a few m/s^2 of noise even standing still;
+            // fade that out softly instead of letting it twitch the piece.
+            float mag = a.magnitude;
+            a *= Mathf.Clamp01((mag - feel.DeadZone) / Mathf.Max(feel.DeadZone, 0.01f));
+            accel = Vector3.Lerp(accel, a * feel.Response, 1f - Mathf.Exp(-dt / feel.SmoothTime));
 
             // In the pivot's frame the piece feels gravity minus the pivot's acceleration.
             Vector3 g = Physics.gravity - accel;
@@ -414,7 +420,7 @@ namespace CSE.Systems
                 if (speed > 1e-5f) dir = Quaternion.AngleAxis(speed * h * Mathf.Rad2Deg, omega / speed) * dir;
                 dir.Normalize();
             }
-            Place();
+            Place(dt);
 
             if (Child != null)
             {
@@ -425,22 +431,37 @@ namespace CSE.Systems
 
         Vector3 up;      // which way the piece's face points (its twist about the hanging axis)
         bool hasUp;
-        const float TwistFollow = 0.15f; // per frame, how quickly the face follows the pivot
+        int refAxis = -1;                 // pivot axis the face follows (0 forward, 1 up, 2 right)
+        const float TwistTime = 0.25f;    // s, how quickly the face follows the pivot
 
-        /// The pivot axis least parallel to the hanging direction, flattened onto the plane
-        /// across it. (Using a fixed axis fails once the pivot itself hangs, like the ring the
-        /// remote hangs from: its forward then runs along the remote and the twist goes wild.)
-        Vector3 ReferenceUp()
+        Vector3 PivotAxis(int i)
         {
-            Vector3 best = Vector3.ProjectOnPlane(pivot.forward, dir);
-            Vector3 b = Vector3.ProjectOnPlane(pivot.up, dir);
-            if (b.sqrMagnitude > best.sqrMagnitude) best = b;
-            b = Vector3.ProjectOnPlane(pivot.right, dir);
-            if (b.sqrMagnitude > best.sqrMagnitude) best = b;
-            return best.normalized;
+            return i == 0 ? pivot.forward : i == 1 ? pivot.up : pivot.right;
         }
 
-        void Place()
+        /// A pivot axis well away from the hanging direction, flattened onto the plane across
+        /// it. (A fixed axis fails once the pivot itself hangs, like the ring the remote hangs
+        /// from: its forward runs along the remote.) Sticks with its choice until that axis gets
+        /// poor, so two equally good axes cannot make it flip back and forth every frame.
+        Vector3 ReferenceUp()
+        {
+            const float Poor = 0.35f, Good = 0.6f;
+            float current = refAxis >= 0 ? Vector3.ProjectOnPlane(PivotAxis(refAxis), dir).magnitude : 0f;
+            if (current < Poor)
+            {
+                int best = 0;
+                float bestLen = 0f;
+                for (int i = 0; i < 3; i++)
+                {
+                    float len = Vector3.ProjectOnPlane(PivotAxis(i), dir).magnitude;
+                    if (len > bestLen) { bestLen = len; best = i; }
+                }
+                if (refAxis < 0 || bestLen > Good) refAxis = best;
+            }
+            return Vector3.ProjectOnPlane(PivotAxis(refAxis), dir).normalized;
+        }
+
+        void Place(float dt = 0f)
         {
             if (pivot == null) return;
             Vector3 target = ReferenceUp();
@@ -457,7 +478,7 @@ namespace CSE.Systems
                 up.Normalize();
                 // either side of the axis will do; take the nearer one so it never flips over
                 if (Vector3.Dot(up, target) < 0f) target = -target;
-                up = Vector3.Slerp(up, target, TwistFollow).normalized;
+                up = Vector3.Slerp(up, target, 1f - Mathf.Exp(-dt / TwistTime)).normalized;
             }
             transform.rotation = Quaternion.LookRotation(dir, up);
             transform.position = pivot.position - transform.rotation * hole;
