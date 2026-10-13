@@ -181,40 +181,89 @@ namespace CSE.Systems
 
         // ---------------------------------------------------------------- ignition
 
-        /// The bow end of the game's key: the end of its mesh farthest from the lock cylinder
-        /// (the parent "Keys" pivot the key turns around).
-        static bool FindBow(out Vector3 localPoint)
+        // The game's key, measured from its mesh bounds (world space): the bow end (farthest from
+        // the lock cylinder, the "Keys" pivot it turns around), the tip in the lock, and the
+        // normal of its flat side (the thinnest bounds axis).
+        struct GameKey
         {
-            localPoint = Vector3.zero;
+            public Vector3 Bow, Tip, Flat;
+            public Renderer Renderer;
+        }
+
+        static bool MeasureGameKey(out GameKey k)
+        {
+            k = default(GameKey);
             var mf = keyMesh != null ? keyMesh.GetComponentInChildren<MeshFilter>() : null;
             if (mf == null || mf.sharedMesh == null) return false;
             var b = mf.sharedMesh.bounds;
-            var meshT = mf.transform;
-            Vector3 e = b.extents;
-            Vector3 axis = e.x >= e.y && e.x >= e.z ? Vector3.right * e.x : e.y >= e.z ? Vector3.up * e.y : Vector3.forward * e.z;
-            Vector3 endA = meshT.TransformPoint(b.center + axis);
-            Vector3 endB = meshT.TransformPoint(b.center - axis);
+            var t = mf.transform;
+            // bounds axes in world space, with their world lengths
+            Vector3[] axes = { t.TransformVector(new Vector3(b.extents.x, 0, 0)),
+                               t.TransformVector(new Vector3(0, b.extents.y, 0)),
+                               t.TransformVector(new Vector3(0, 0, b.extents.z)) };
+            int longest = 0, thinnest = 0;
+            for (int i = 1; i < 3; i++)
+            {
+                if (axes[i].sqrMagnitude > axes[longest].sqrMagnitude) longest = i;
+                if (axes[i].sqrMagnitude < axes[thinnest].sqrMagnitude) thinnest = i;
+            }
+            Vector3 c = t.TransformPoint(b.center);
+            Vector3 endA = c + axes[longest], endB = c - axes[longest];
             Vector3 lockPivot = keyMesh.parent != null ? keyMesh.parent.position : keyMesh.position;
-            Vector3 bow = Vector3.Distance(endA, lockPivot) > Vector3.Distance(endB, lockPivot) ? endA : endB;
-            localPoint = keyMesh.InverseTransformPoint(bow);
+            bool aIsBow = Vector3.Distance(endA, lockPivot) > Vector3.Distance(endB, lockPivot);
+            k.Bow = aIsBow ? endA : endB;
+            k.Tip = aIsBow ? endB : endA;
+            k.Flat = axes[thinnest].normalized;
+            k.Renderer = mf.GetComponent<Renderer>();
             return true;
         }
 
+        static Renderer hiddenGameKey;
+
+        /// Our key model takes the place of the game's key (hidden, but the object stays active:
+        /// its active state is how we know the key is in the lock). Without the model, only a
+        /// keyring is added at the game key's bow.
         static void BuildIgnition()
         {
             DestroyIgnition();
-            Vector3 bow;
-            if (!FindBow(out bow)) bow = Vector3.zero;
+            GameKey k;
+            bool measured = MeasureGameKey(out k);
+            var model = Models.Get("key");
+
             ignition = new GameObject("cse_keyring_in_ignition");
-            ignition.transform.parent = keyMesh;
-            ignition.transform.localPosition = bow;
-            ignition.transform.localRotation = Quaternion.identity;
-            // a ring standing in the plane of the key bow
-            Shapes.Add(ignition.transform, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.024f, 0.0015f, 0.024f), Shapes.Steel, new Vector3(0, 0, 90), "ring");
+            // Under the turning "Keys" pivot rather than the key mesh: the mesh may be scaled
+            // non-uniformly, which would skew a rotated child.
+            ignition.transform.parent = keyMesh.parent ?? keyMesh;
+            float parentScale = ignition.transform.parent.lossyScale.x;
+            ignition.transform.localScale = Vector3.one / (Mathf.Abs(parentScale) > 1e-4f ? parentScale : 1f);
+
+            if (model != null && measured)
+            {
+                // Model space: ring at the origin, blade running to -Z, flat side facing +Y.
+                ignition.transform.rotation = Quaternion.LookRotation((k.Bow - k.Tip).normalized, k.Flat);
+                ignition.transform.position = k.Tip - ignition.transform.rotation * new Vector3(0f, 0f, model.Bounds.min.z);
+                BuildKey(ignition.transform);
+                if (k.Renderer != null)
+                {
+                    k.Renderer.enabled = false;
+                    hiddenGameKey = k.Renderer;
+                }
+            }
+            else
+            {
+                ignition.transform.position = measured ? k.Bow : keyMesh.position;
+                ignition.transform.rotation = keyMesh.rotation;
+                var pivot = new GameObject("fob_pivot").transform;
+                pivot.parent = ignition.transform;
+                pivot.localPosition = Vector3.zero;
+                Shapes.Add(ignition.transform, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.024f, 0.0015f, 0.024f), Shapes.Steel, new Vector3(0, 0, 90), "ring");
+            }
         }
 
         static void DestroyIgnition()
         {
+            if (hiddenGameKey != null) hiddenGameKey.enabled = true;
+            hiddenGameKey = null;
             if (ignition != null) Object.Destroy(ignition);
             ignition = null;
             ignitionSwing = null;
@@ -233,7 +282,7 @@ namespace CSE.Systems
             if (ignition != null && inIgnition.Fob != (ignitionSwing != null))
             {
                 if (ignitionSwing != null) Object.Destroy(ignitionSwing.gameObject);
-                ignitionSwing = inIgnition.Fob ? Swing.Create(ignition.transform, Swing.Feel.Car) : null;
+                ignitionSwing = inIgnition.Fob ? Swing.Create(FobPivot(ignition.transform), Swing.Feel.Car) : null;
             }
 
             if (handSwing != null) handSwing.SetLed(Time.time < blinkUntil, inHand != null ? inHand.Battery : 0f);
