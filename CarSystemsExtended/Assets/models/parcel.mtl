@@ -1,0 +1,30 @@
+newmtl cardboard
+Kd 0.3600 0.2200 0.1000
+d 1.000
+Ns 10.0
+Pm 0.000
+
+newmtl ink
+Kd 0.0500 0.0500 0.0600
+d 1.000
+Ns 30.0
+Pm 0.000
+
+newmtl tape
+Kd 0.6200 0.5000 0.3200
+d 1.000
+Ns 60.0
+Pm 0.000
+
+newmtl paper
+Kd 0.8600 0.8400 0.7600
+d 1.000
+Ns 15.0
+Pm 0.000
+
+newmtl label_red
+Kd 0.5000 0.0500 0.0400
+d 1.000
+Ns 40.0
+Pm 0.000
+

@@ -1,0 +1,18 @@
+newmtl battery_label
+Kd 0.0600 0.1800 0.5500
+d 1.000
+Ns 60.0
+Pm 0.000
+
+newmtl zinc
+Kd 0.6200 0.6200 0.5800
+d 1.000
+Ns 55.0
+Pm 1.000
+
+newmtl label_silver
+Kd 0.7000 0.7000 0.6800
+d 1.000
+Ns 50.0
+Pm 0.000
+

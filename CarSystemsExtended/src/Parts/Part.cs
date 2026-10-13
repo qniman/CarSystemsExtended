@@ -208,10 +208,21 @@ namespace CSE.Parts
         /// Shows a damaged part as such (a blown fuse goes dark). Safe to call any time.
         public void ApplyDamagedLook()
         {
+            if (!Damaged) return;
+            var burnt = new Color(0.05f, 0.07f, 0.12f);
             var body = transform.Find("body");
-            if (body == null) return;
-            var r = body.GetComponent<Renderer>();
-            if (r != null && Damaged) r.material.color = new Color(0.05f, 0.07f, 0.12f);
+            if (body != null)
+            {
+                var r = body.GetComponent<Renderer>();
+                if (r != null) r.material.color = burnt;
+                return;
+            }
+            // Blender model: darken its "fuse_body" material (instance names get a suffix).
+            var model = transform.Find("model");
+            var mr = model != null ? model.GetComponent<Renderer>() : null;
+            if (mr == null) return;
+            foreach (var m in mr.materials)
+                if (m.name.StartsWith("cse_fuse_body")) m.color = burnt;
         }
 
         public void OnBoltsChanged()

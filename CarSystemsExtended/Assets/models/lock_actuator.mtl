@@ -1,0 +1,24 @@
+newmtl plastic_black
+Kd 0.0300 0.0300 0.0330
+d 1.000
+Ns 45.0
+Pm 0.000
+
+newmtl plastic_grey
+Kd 0.0900 0.0900 0.1000
+d 1.000
+Ns 40.0
+Pm 0.000
+
+newmtl rubber
+Kd 0.0250 0.0250 0.0250
+d 1.000
+Ns 5.0
+Pm 0.000
+
+newmtl zinc
+Kd 0.6200 0.6200 0.5800
+d 1.000
+Ns 55.0
+Pm 1.000
+

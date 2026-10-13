@@ -9,6 +9,17 @@ namespace CSE.Parts
     // Car space: +X = right (passenger side), +Y = up, +Z = forward. The car is left-hand drive.
     public static class PartCatalog
     {
+        /// Build action: the Blender model when it is embedded, else the placeholder shapes. Parts
+        /// with a status LED get the mod's glowing lens on the model's "led" marker.
+        static System.Action<Transform> WithModel(string model, float ledSize, System.Action<Transform> placeholder)
+        {
+            return t =>
+            {
+                var m = Models.BuildOr(t, model, placeholder);
+                if (m != null && ledSize > 0f && m.HasMarker("led")) Shapes.AddLed(t, m.Marker("led", Vector3.zero), ledSize);
+            };
+        }
+
         // ---------------------------------------------------------------- alarm kit
 
         public static readonly PartDef AlarmUnit = new PartDef
@@ -35,7 +46,8 @@ namespace CSE.Parts
                 new BoltDef(new Vector3(0.085f, -0.0175f, 0f), new Vector3(90, 0, 0), 7),
             },
             PlugPos = new Vector3(-0.04f, 0f, -0.05f),
-            Build = t =>
+            Model = "alarm_unit",
+            Build = WithModel("alarm_unit", 0.008f, t =>
             {
                 Shapes.Add(t, PrimitiveType.Cube, Vector3.zero, new Vector3(0.13f, 0.035f, 0.09f), Shapes.Black);
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(-0.08f, -0.0155f, 0f), new Vector3(0.035f, 0.004f, 0.03f), Shapes.Steel);
@@ -43,7 +55,7 @@ namespace CSE.Parts
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(-0.04f, 0f, -0.05f), new Vector3(0.04f, 0.018f, 0.012f), Shapes.DarkGrey);
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(0.045f, 0.0215f, -0.03f), new Vector3(0.03f, 0.008f, 0.014f), Shapes.DarkGrey);
                 Shapes.AddLed(t, new Vector3(0.03f, 0.005f, 0.045f), 0.008f);
-            },
+            }),
         };
 
         public static readonly PartDef Siren = new PartDef
@@ -70,13 +82,14 @@ namespace CSE.Parts
             },
             Wired = true,
             PlugPos = new Vector3(0f, 0f, -0.035f),
-            Build = t =>
+            Model = "siren",
+            Build = WithModel("siren", 0f, t =>
             {
                 Shapes.Add(t, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.09f, 0.03f, 0.09f), Shapes.Black, new Vector3(90, 0, 0));
                 Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, 0f, 0.031f), new Vector3(0.07f, 0.002f, 0.07f), Shapes.DarkGrey, new Vector3(90, 0, 0));
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, -0.05f, -0.01f), new Vector3(0.03f, 0.004f, 0.06f), Shapes.Steel);
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, -0.027f, 0.018f), new Vector3(0.03f, 0.05f, 0.004f), Shapes.Steel);
-            },
+            }),
         };
 
         public static readonly PartDef Fuse = new PartDef
@@ -95,12 +108,13 @@ namespace CSE.Parts
                     Tolerance = 0.08f,
                 },
             },
-            Build = t =>
+            Model = "fuse",
+            Build = WithModel("fuse", 0f, t =>
             {
                 Shapes.Add(t, PrimitiveType.Cube, Vector3.zero, new Vector3(0.019f, 0.012f, 0.005f), new Color(0.15f, 0.35f, 0.9f), default(Vector3), "body");
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(-0.005f, -0.009f, 0f), new Vector3(0.003f, 0.007f, 0.001f), Shapes.Steel);
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(0.005f, -0.009f, 0f), new Vector3(0.003f, 0.007f, 0.001f), Shapes.Steel);
-            },
+            }),
         };
 
         /// Status LED on top of the dash by the windscreen, visible from outside.
@@ -124,12 +138,13 @@ namespace CSE.Parts
             // No bolts: like the real thing it is pushed into a hole drilled in the dash top.
             Wired = true,
             PlugPos = new Vector3(0f, -0.004f, -0.012f),
-            Build = t =>
+            Model = "status_led",
+            Build = WithModel("status_led", 0.0085f, t =>
             {
                 Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, -0.002f, 0f), new Vector3(0.018f, 0.0015f, 0.018f), Shapes.Black);
                 Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, 0.003f, 0f), new Vector3(0.012f, 0.005f, 0.012f), Shapes.Black);
                 Shapes.AddLed(t, new Vector3(0f, 0.009f, 0f), 0.008f);
-            },
+            }),
         };
 
         /// Key fob. Not mounted: it goes onto the Satsuma keyring (see AlarmSystem).
@@ -191,11 +206,12 @@ namespace CSE.Parts
             Name = "a23 battery",
             Mass = 0.01f,
             ColliderSize = new Vector3(0.02f, 0.03f, 0.02f),
-            Build = t =>
+            Model = "a23_battery",
+            Build = WithModel("a23_battery", 0f, t =>
             {
                 Shapes.Add(t, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.01f, 0.0125f, 0.01f), new Color(0.1f, 0.25f, 0.6f));
                 Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, 0.0128f, 0f), new Vector3(0.004f, 0.0006f, 0.004f), Shapes.Steel);
-            },
+            }),
         };
 
         // ---------------------------------------------------------------- door lock kit
@@ -234,12 +250,13 @@ namespace CSE.Parts
             },
             Wired = true,
             PlugPos = new Vector3(0f, 0f, -0.045f),
-            Build = t =>
+            Model = "lock_actuator",
+            Build = WithModel("lock_actuator", 0f, t =>
             {
                 Shapes.Add(t, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.03f, 0.04f, 0.03f), Shapes.Black, new Vector3(90, 0, 0));
                 Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0f, 0.03f, 0.03f), new Vector3(0.005f, 0.03f, 0.005f), Shapes.Steel);
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(0.017f, 0f, 0f), new Vector3(0.004f, 0.03f, 0.05f), Shapes.Steel);
-            },
+            }),
         };
 
         // ---------------------------------------------------------------- remote start
@@ -269,13 +286,14 @@ namespace CSE.Parts
             },
             Wired = true,
             PlugPos = new Vector3(-0.033f, 0f, 0f),
-            Build = t =>
+            Model = "choke_servo",
+            Build = WithModel("choke_servo", 0f, t =>
             {
                 Shapes.Add(t, PrimitiveType.Cube, Vector3.zero, new Vector3(0.06f, 0.04f, 0.05f), Shapes.DarkGrey);
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, -0.0215f, 0.03f), new Vector3(0.03f, 0.003f, 0.025f), Shapes.Steel);
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(0.035f, 0.01f, 0f), new Vector3(0.006f, 0.035f, 0.008f), Shapes.Steel);
                 Shapes.Add(t, PrimitiveType.Cylinder, new Vector3(0.06f, 0.025f, 0f), new Vector3(0.003f, 0.03f, 0.003f), Shapes.Black, new Vector3(0, 0, 90));
-            },
+            }),
         };
 
         // ---------------------------------------------------------------- mail order items
@@ -305,11 +323,12 @@ namespace CSE.Parts
             Name = "order envelope",
             Mass = 0.05f,
             ColliderSize = new Vector3(0.22f, 0.01f, 0.11f),
-            Build = t =>
+            Model = "envelope",
+            Build = WithModel("envelope", 0f, t =>
             {
                 Shapes.Add(t, PrimitiveType.Cube, Vector3.zero, new Vector3(0.22f, 0.004f, 0.11f), Paper);
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(0.085f, 0.0025f, 0.03f), new Vector3(0.025f, 0.001f, 0.03f), new Color(0.75f, 0.1f, 0.08f));
-            },
+            }),
         };
 
         public static readonly PartDef Parcel = new PartDef
@@ -318,12 +337,13 @@ namespace CSE.Parts
             Name = "parcel",
             Mass = 3f,
             ColliderSize = new Vector3(0.4f, 0.22f, 0.3f),
-            Build = t =>
+            Model = "parcel",
+            Build = WithModel("parcel", 0f, t =>
             {
                 Shapes.Add(t, PrimitiveType.Cube, Vector3.zero, new Vector3(0.4f, 0.22f, 0.3f), Cardboard);
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(0f, 0.111f, 0f), new Vector3(0.05f, 0.001f, 0.302f), new Color(0.8f, 0.75f, 0.6f));
                 Shapes.Add(t, PrimitiveType.Cube, new Vector3(0.08f, 0.111f, 0.07f), new Vector3(0.12f, 0.001f, 0.08f), Paper);
-            },
+            }),
         };
 
         // Parents before children: load order depends on it.

@@ -18,6 +18,24 @@ import bmesh
 import bpy
 from mathutils import Matrix, Vector
 
+# ---------------------------------------------------------------------------- part space
+# Build in the mod's own part coordinates (+X right, +Y up, +Z front, metres), matching the
+# numbers in PartCatalog.cs, and let these convert to Blender: export() maps back exactly.
+
+def P(x, y, z):
+    """Part-space point -> Blender location."""
+    return (-x, -z, y)
+
+
+def S(x, y, z):
+    """Part-space size -> Blender size."""
+    return (x, z, y)
+
+
+# part axis -> Blender axis, for cylinders / tori
+AX = {'X': 'X', 'Y': 'Z', 'Z': 'Y'}
+
+
 # ---------------------------------------------------------------------------- scene
 
 def model_scene(name="CSE Models"):
@@ -129,6 +147,19 @@ def cylinder(col, name, radius, depth, loc=(0, 0, 0), axis='Z', mat=None, segmen
     if bevel_w > 0:
         bevel(ob, bevel_w, segs)
     return smooth(ob)
+
+
+def cone(col, name, r_back, r_front, depth, loc=(0, 0, 0), mat=None, segments=24, cap=True):
+    """Truncated cone along the part's Z axis (Blender Y): r_back at part -Z, r_front at +Z."""
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=cap, cap_tris=False, segments=segments,
+                          radius1=r_back, radius2=r_front, depth=depth)
+    # Blender +Z -> -Y, which is part +Z (front)
+    bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(math.radians(90), 3, 'X'))
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    return smooth(_object(col, name, me, mat, loc), math.radians(50))
 
 
 def dome(col, name, radius, height, loc=(0, 0, 0), mat=None, segments=16, rings=5):
