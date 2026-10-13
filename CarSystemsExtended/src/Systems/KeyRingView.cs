@@ -423,11 +423,42 @@ namespace CSE.Systems
             }
         }
 
+        Vector3 up;      // which way the piece's face points (its twist about the hanging axis)
+        bool hasUp;
+        const float TwistFollow = 0.15f; // per frame, how quickly the face follows the pivot
+
+        /// The pivot axis least parallel to the hanging direction, flattened onto the plane
+        /// across it. (Using a fixed axis fails once the pivot itself hangs, like the ring the
+        /// remote hangs from: its forward then runs along the remote and the twist goes wild.)
+        Vector3 ReferenceUp()
+        {
+            Vector3 best = Vector3.ProjectOnPlane(pivot.forward, dir);
+            Vector3 b = Vector3.ProjectOnPlane(pivot.up, dir);
+            if (b.sqrMagnitude > best.sqrMagnitude) best = b;
+            b = Vector3.ProjectOnPlane(pivot.right, dir);
+            if (b.sqrMagnitude > best.sqrMagnitude) best = b;
+            return best.normalized;
+        }
+
         void Place()
         {
             if (pivot == null) return;
-            Vector3 up = Vector3.ProjectOnPlane(pivot.forward, dir);
-            if (up.sqrMagnitude < 1e-6f) up = Vector3.ProjectOnPlane(pivot.up, dir);
+            Vector3 target = ReferenceUp();
+            if (!hasUp)
+            {
+                up = target;
+                hasUp = true;
+            }
+            else
+            {
+                // carry last frame's face along, then ease it towards the pivot's
+                up = Vector3.ProjectOnPlane(up, dir);
+                if (up.sqrMagnitude < 1e-6f) up = target;
+                up.Normalize();
+                // either side of the axis will do; take the nearer one so it never flips over
+                if (Vector3.Dot(up, target) < 0f) target = -target;
+                up = Vector3.Slerp(up, target, TwistFollow).normalized;
+            }
             transform.rotation = Quaternion.LookRotation(dir, up);
             transform.position = pivot.position - transform.rotation * hole;
         }
