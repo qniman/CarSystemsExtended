@@ -132,7 +132,7 @@ namespace CSE.Systems
         const float SignalDelay = 0.6f;
         const float ReplyDelay = 0.5f;
 
-        enum Reply { None, Ok, Fail, Stopped }
+        enum Reply { None, Ok, Fail, Stopped, NoLink }
 
         static bool commandPending;
         static float commandAt;
@@ -148,8 +148,13 @@ namespace CSE.Systems
                 return;
             }
             Sfx.FobSend();
-            // Out of range or out of power the car simply never answers.
-            if (!AlarmSystem.PressFob() || !AlarmSystem.Powered) return;
+            // Out of range or out of power the car never answers: the two-way remote notices
+            // the missing reply and buzzes "no link".
+            if (!AlarmSystem.PressFob() || !AlarmSystem.Powered)
+            {
+                SendReply(Reply.NoLink, SignalDelay + ReplyDelay);
+                return;
+            }
             commandPending = true;
             commandAt = Time.time + SignalDelay;
         }
@@ -163,10 +168,10 @@ namespace CSE.Systems
             LastResult = null;
         }
 
-        static void SendReply(Reply r)
+        static void SendReply(Reply r, float delay = ReplyDelay)
         {
             reply = r;
-            replyAt = Time.time + ReplyDelay;
+            replyAt = Time.time + delay;
         }
 
         static void TickRadio()
@@ -179,7 +184,11 @@ namespace CSE.Systems
             if (reply != Reply.None && Time.time >= replyAt)
             {
                 // The car's transmitter reaches further than the fob's.
-                if (AlarmSystem.FobHearsAny)
+                if (reply == Reply.NoLink)
+                {
+                    if (AlarmSystem.HandFobAlive) Sfx.FobNoLink();
+                }
+                else if (AlarmSystem.FobHearsAny)
                 {
                     if (reply == Reply.Ok) Sfx.FobOk();
                     else if (reply == Reply.Fail) Sfx.FobFail();

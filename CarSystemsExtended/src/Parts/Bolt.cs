@@ -1,4 +1,6 @@
 using CSE.Core;
+using HutongGames.PlayMaker;
+using MSCLoader;
 using UnityEngine;
 
 namespace CSE.Parts
@@ -7,6 +9,10 @@ namespace CSE.Parts
     // named "BoltPM", on the Bolts layer, with the size in mm/10 as the X scale. The game does the
     // aiming, size check, ratchet direction and highlighting; ToolHook forwards the resulting
     // tighten/untighten steps here.
+    //
+    // Like the game's bolts it also carries a "Screw" FSM (Stage, ThisBolt, TIGHTEN/UNTIGHTEN):
+    // mods that animate the wrench (BetterMSC) read it and send the step to it instead of
+    // going through the game's wrench FSM.
     public class Bolt : MonoBehaviour
     {
         public const int MaxStage = 8;
@@ -17,6 +23,7 @@ namespace CSE.Parts
         public int Stage;
 
         Transform head;
+        FsmInt fsmStage;
 
         public static Bolt Create(Part owner, Transform parent, BoltDef def)
         {
@@ -45,8 +52,41 @@ namespace CSE.Parts
             mesh.AddComponent<MeshFilter>().sharedMesh = BoltMesh(def.Size);
             mesh.AddComponent<MeshRenderer>().sharedMaterial = SteelMaterial;
             bolt.head = mesh.transform;
+            bolt.AddScrewFsm(go, mesh);
             bolt.UpdateVisual();
             return bolt;
+        }
+
+        void AddScrewFsm(GameObject go, GameObject mesh)
+        {
+            var fsm = go.AddComponent<PlayMakerFSM>();
+            fsm.FsmName = "Screw";
+            fsm.AddState("Wait");
+            fsm.AddState("Tighten").AddAction(new StepAction { Bolt = this, Dir = 1 });
+            fsm.AddState("Untighten").AddAction(new StepAction { Bolt = this, Dir = -1 });
+            fsm.GetState("Tighten").AddTransition("FINISHED", "Wait");
+            fsm.GetState("Untighten").AddTransition("FINISHED", "Wait");
+            fsm.AddGlobalTransition("TIGHTEN", "Tighten");
+            fsm.AddGlobalTransition("UNTIGHTEN", "Untighten");
+            fsmStage = new FsmInt("Stage") { Value = Stage };
+            fsm.AddVariable(fsmStage);
+            fsm.AddVariable(new FsmGameObject("ThisBolt") { Value = mesh });
+            fsm.AddVariable(new FsmGameObject("PartAssembled") { Value = Owner != null ? Owner.gameObject : null });
+            fsm.Fsm.StartState = "Wait";
+            fsm.InitializeFSM();
+        }
+
+        /// A step sent to the bolt's own FSM (another mod's wrench).
+        class StepAction : FsmStateAction
+        {
+            public Bolt Bolt;
+            public int Dir;
+
+            public override void OnEnter()
+            {
+                if (Bolt != null) ToolHook.Step(Bolt, Dir);
+                Finish();
+            }
         }
 
         static Material steel;
@@ -91,6 +131,7 @@ namespace CSE.Parts
         public void SetStage(int stage)
         {
             Stage = Mathf.Clamp(stage, 0, MaxStage);
+            if (fsmStage != null) fsmStage.Value = Stage;
             UpdateVisual();
         }
 

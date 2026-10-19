@@ -7,14 +7,19 @@ namespace CSE.Systems
 {
     // The alarm's own relay for the turn signal lamps. The game's indicator lights live under
     // Electricity/PowerON, which is switched off with the ignition, so we clone them next to it
-    // and switch the copies ourselves. Mods that move or hide the car's lamps (Satsuma Estate has
-    // its own rear lights) change the originals, so the copies follow them before every flash.
+    // and switch the copies ourselves. Mods that move, hide or add lamps there (Satsuma Estate,
+    // Coupe) change the originals, so the copies follow them before every flash and are cloned
+    // again when the originals' lamp set changed (also when such a mod builds them after us).
     public static class Flasher
     {
         const float Interval = 0.35f;
 
+        const string LeftPath = "Electricity/PowerON/Indicators/Left";
+        const string RightPath = "Electricity/PowerON/Indicators/Right";
+
         static GameObject left, right;
         static Transform leftOrig, rightOrig;
+        static string leftShape, rightShape;
         static int togglesLeft;
         static bool continuous;
         static bool lit;
@@ -25,8 +30,8 @@ namespace CSE.Systems
 
         public static void Init()
         {
-            left = Clone("Electricity/PowerON/Indicators/Left", out leftOrig);
-            right = Clone("Electricity/PowerON/Indicators/Right", out rightOrig);
+            left = Clone(LeftPath, left, out leftOrig, out leftShape);
+            right = Clone(RightPath, right, out rightOrig, out rightShape);
             togglesLeft = 0;
             continuous = false;
             lit = false;
@@ -49,8 +54,10 @@ namespace CSE.Systems
             gameHazardsOffAt = Time.time + blinks * 0.8f - 0.6f;
         }
 
-        static GameObject Clone(string path, out Transform orig)
+        static GameObject Clone(string path, GameObject old, out Transform orig, out string shape)
         {
+            if (old != null) Object.Destroy(old);
+            shape = null;
             orig = GameRefs.FindInCar(path);
             var host = GameRefs.FindInCar("Electricity");
             if (orig == null || host == null)
@@ -58,6 +65,7 @@ namespace CSE.Systems
                 ModConsole.Warning("[CSE] Indicator lights not found: " + path);
                 return null;
             }
+            shape = Shape(orig);
             var copy = (GameObject)Object.Instantiate(orig.gameObject);
             foreach (var fsm in copy.GetComponentsInChildren<PlayMakerFSM>(true))
                 Object.DestroyImmediate(fsm);
@@ -69,11 +77,19 @@ namespace CSE.Systems
             return copy;
         }
 
-        /// Blink n times.
+        /// Names of the lamps under an indicator, recursively: a change means a mod rebuilt them.
+        static string Shape(Transform t)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (Transform c in t) sb.Append(c.name).Append('(').Append(Shape(c)).Append(')');
+            return sb.ToString();
+        }
+
+        /// Blink n times. Ends dark even when called while lit (quick lock/unlock presses).
         public static void Flash(int times)
         {
             continuous = false;
-            togglesLeft = times * 2;
+            togglesLeft = times * 2 + (lit ? 1 : 0);
             nextToggle = Time.time;
         }
 
@@ -91,7 +107,11 @@ namespace CSE.Systems
                 if (gameHazards != null) gameHazards.Value = false;
             }
 
-            if (!continuous && togglesLeft <= 0) return;
+            if (!continuous && togglesLeft <= 0)
+            {
+                if (lit) Set(false); // never leave the copies on
+                return;
+            }
             if (Time.time < nextToggle) return;
             nextToggle = Time.time + Interval;
             Set(!lit);
@@ -135,6 +155,8 @@ namespace CSE.Systems
             lit = on;
             if (on)
             {
+                if (leftOrig != null && Shape(leftOrig) != leftShape) left = Clone(LeftPath, left, out leftOrig, out leftShape);
+                if (rightOrig != null && Shape(rightOrig) != rightShape) right = Clone(RightPath, right, out rightOrig, out rightShape);
                 FollowRoot(leftOrig, left);
                 FollowRoot(rightOrig, right);
             }

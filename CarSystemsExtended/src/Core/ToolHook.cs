@@ -12,7 +12,9 @@ namespace CSE.Core
     //
     // Mods that animate the wrench (BetterMSC) add their own tighten states to the same FSM and
     // may route around the game's, so any state named like one is hooked too, also when it
-    // appears after we loaded. A state chain passing several of them in one frame is one step.
+    // appears after we loaded. BetterMSC's animated wrench skips this FSM and sends TIGHTEN /
+    // UNTIGHTEN to the bolt's own "Screw" FSM (see Bolt). The same step arriving by several of
+    // these paths within a moment counts once.
     public static class ToolHook
     {
         const string CheckPath = "PLAYER/Pivot/AnimPivot/Camera/FPSCamera/2Spanner/Raycast";
@@ -21,15 +23,18 @@ namespace CSE.Core
         static PlayMakerFSM check;
         static readonly HashSet<string> hooked = new HashSet<string>();
         static int knownStates;
-        static int lastStepFrame = -1;
+        const float SameStep = 0.08f;
+
+        static float lastStepTime = -1f;
         static Bolt lastStepBolt;
+        static int lastStepDir;
 
         public static void Init()
         {
             boltVar = null;
             hooked.Clear();
             knownStates = 0;
-            lastStepFrame = -1;
+            lastStepTime = -1f;
             lastStepBolt = null;
             var go = GameObject.Find(CheckPath);
             check = go != null ? go.GetPlayMaker("Check") : null;
@@ -79,10 +84,15 @@ namespace CSE.Core
         {
             if (boltVar == null || boltVar.Value == null) return;
             var bolt = boltVar.Value.GetComponent<Bolt>();
-            if (bolt == null) return;
-            if (lastStepFrame == Time.frameCount && lastStepBolt == bolt) return;
-            lastStepFrame = Time.frameCount;
+            if (bolt != null) Step(bolt, dir);
+        }
+
+        public static void Step(Bolt bolt, int dir)
+        {
+            if (lastStepBolt == bolt && lastStepDir == dir && Time.time - lastStepTime < SameStep) return;
+            lastStepTime = Time.time;
             lastStepBolt = bolt;
+            lastStepDir = dir;
             bolt.Turn(dir);
         }
     }
