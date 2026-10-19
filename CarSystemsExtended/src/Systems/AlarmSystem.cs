@@ -44,6 +44,8 @@ namespace CSE.Systems
         static float movingSince = -1f;
         static SettingsKeybind lockKey;
         static bool consumedLockPress;
+        static bool sirenWasReady;
+        static float selfTestFrom;
 
         public static void Init(SettingsKeybind lockKeybind)
         {
@@ -55,6 +57,9 @@ namespace CSE.Systems
             sirenSource = null;
             pendingRelock = false;
             consumedLockPress = false;
+            sirenWasReady = false;
+            // parts restored from the save (some a moment later) are not a fresh install
+            selfTestFrom = Time.time + 5f;
 
             PartCatalog.Fob.OnHeld = FobHeld;
             PartCatalog.FobBattery.OnHeld = BatteryHeld;
@@ -407,10 +412,15 @@ namespace CSE.Systems
             {
                 Powered = true;
                 if (pendingRelock) DoorLocks.LockAll(true);
-                else if (SirenReady) Chirp(1); // power-up self test
             }
             Powered = now;
             if (Powered) pendingRelock = false;
+
+            // Self test: one chirp once the alarm is complete, whichever part went in last (the
+            // siren is often fitted after the power). Not on load, the car was already complete.
+            bool sirenReady = SirenReady;
+            if (sirenReady && !sirenWasReady && Time.time > selfTestFrom) Chirp(1);
+            sirenWasReady = sirenReady;
 
             if (Powered)
             {

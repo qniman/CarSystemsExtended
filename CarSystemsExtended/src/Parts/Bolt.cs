@@ -67,7 +67,7 @@ namespace CSE.Parts
 
             var tmp = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             var cyl = tmp.GetComponent<MeshFilter>().sharedMesh;
-            Object.Destroy(tmp);
+            Object.DestroyImmediate(tmp);
 
             float head = size * 0.0016f;
             float shank = head * 0.55f;

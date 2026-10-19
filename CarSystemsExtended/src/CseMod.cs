@@ -156,6 +156,7 @@ namespace CSE
                     if (startKey.GetKeybindDown()) RemoteStart.OnButton();
                 }
 
+                ToolHook.Tick();
                 AlarmWiring.Tick();
                 AlarmSystem.Tick();
                 RemoteStart.Tick();

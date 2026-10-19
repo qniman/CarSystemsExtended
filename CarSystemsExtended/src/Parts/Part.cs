@@ -29,6 +29,14 @@ namespace CSE.Parts
         float pendingInstall = -1f;
         int pendingMount = -1;
 
+        // ---- saved as installed, but its mount was not there yet when the save loaded
+        // (engine parts attached a moment later, an optimisation mod toggling the car)
+        const float RestoreTimeout = 30f;
+        int restoreMount = -1;
+        int[] restoreBolts;
+        bool restoreWire;
+        float restoreUntil;
+
         // ---- loose-item physics safety (see TickLoosePhysics)
         const float MinColliderSize = 0.02f;
         const float FreezeDistance = 40f;   // parked beyond this from the player
@@ -146,13 +154,14 @@ namespace CSE.Parts
             gameObject.layer = LayerMask.NameToLayer("Parts");
         }
 
-        /// Snaps the part onto its mount. Returns false if the mount is not available.
-        public bool Install(int mountIndex, int[] boltStages = null, bool silent = false)
+        /// Snaps the part onto its mount. Returns false if the mount is not available. restoring =
+        /// loading a save: the mount object only has to exist, it may be switched off for now.
+        public bool Install(int mountIndex, int[] boltStages = null, bool silent = false, bool restoring = false)
         {
             Transform parent;
             Vector3 pos;
             Quaternion rot;
-            if (!PartManager.ResolveMount(this, mountIndex, out parent, out pos, out rot)) return false;
+            if (!PartManager.ResolveMount(this, mountIndex, out parent, out pos, out rot, restoring)) return false;
             MountIndex = mountIndex;
 
             var rb = GetComponent<Rigidbody>();
@@ -191,6 +200,58 @@ namespace CSE.Parts
             MakeLoose();
             if (!silent) Sfx.Disassemble(transform.position);
             PartManager.OnPartChanged(this);
+        }
+
+        /// Keeps retrying a saved installation until the mount shows up (or gives up and leaves the
+        /// part loose). Meanwhile the part hangs frozen where it was saved.
+        public void RestoreLater(int mountIndex, int[] boltStages, bool wire)
+        {
+            restoreMount = mountIndex;
+            restoreBolts = boltStages;
+            restoreWire = wire;
+            restoreUntil = Time.time + RestoreTimeout;
+            SetFrozen(true);
+        }
+
+        /// Waiting for its mount after a load; saved as installed meanwhile.
+        public bool AwaitingRestore
+        {
+            get { return restoreMount >= 0; }
+        }
+
+        public int RestoreMount
+        {
+            get { return restoreMount; }
+        }
+
+        public int[] RestoreBolts
+        {
+            get { return restoreBolts; }
+        }
+
+        public bool RestoreWire
+        {
+            get { return restoreWire; }
+        }
+
+        void TickRestore()
+        {
+            if (Install(restoreMount, restoreBolts, true, true))
+            {
+                ModConsole.Log("[CSE] " + Uid + " reinstalled once its mount appeared");
+                restoreMount = -1;
+                WireConnected = restoreWire;
+                PartManager.OnPartChanged(this);
+                return;
+            }
+            if (Time.time < restoreUntil)
+            {
+                SetFrozen(true);
+                return;
+            }
+            ModConsole.Warning("[CSE] Could not reinstall " + Uid + ", left loose");
+            restoreMount = -1;
+            FreezeUntilSettled();
         }
 
         /// Re-applies the mount position (used by the mount editor).
@@ -235,6 +296,11 @@ namespace CSE.Parts
         /// Called every frame by PartManager.
         public void Tick()
         {
+            if (restoreMount >= 0)
+            {
+                TickRestore();
+                return;
+            }
             if (pendingInstall >= 0f)
             {
                 // Give the game's hand a moment to drop the item before we re-parent it,

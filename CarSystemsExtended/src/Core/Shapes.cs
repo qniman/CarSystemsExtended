@@ -37,7 +37,10 @@ namespace CSE.Core
             Vector3 euler = default(Vector3), string name = "mesh")
         {
             var go = GameObject.CreatePrimitive(type);
-            Object.Destroy(go.GetComponent<Collider>());
+            // Immediately, and before parenting: a deferred Destroy leaves a live collider for the
+            // rest of the frame, which under the car joins its rigidbody (the car shakes, the
+            // player is thrown through the floor) and in the hand shoves the player.
+            Object.DestroyImmediate(go.GetComponent<Collider>());
             go.name = name;
             go.transform.parent = parent;
             go.transform.localPosition = localPos;

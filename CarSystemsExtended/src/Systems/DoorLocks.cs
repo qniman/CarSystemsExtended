@@ -68,8 +68,21 @@ namespace CSE.Systems
 
         static bool ActuatorReady(Door d)
         {
+            return WhyNotReady(d) == null;
+        }
+
+        /// What keeps a door's actuator from working, or null. Logged on every remote press so a
+        /// player's output_log tells what is missing.
+        static string WhyNotReady(Door d)
+        {
+            if (d.T == null) return "door not on the car";
+            if (d.OpenClick == null) return "door FSM action not found (changed by another mod?)";
             var a = PartManager.FindInstalled(PartCatalog.LockActuator.Id, d.Mount);
-            return a != null && a.Secured && a.WireConnected && AlarmSystem.Powered;
+            if (a == null) return "no actuator installed";
+            if (!a.AllBoltsTight) return "actuator bolts not tight";
+            if (!a.WireConnected) return "actuator not wired to the alarm unit";
+            if (!AlarmSystem.Powered) return "alarm unit has no power";
+            return null;
         }
 
         public static bool AnyLocked
@@ -121,7 +134,13 @@ namespace CSE.Systems
             foreach (var d in doors)
             {
                 Resolve(d);
-                if (d.T == null || d.Locked || !ActuatorReady(d)) continue;
+                if (d.T == null || d.Locked) continue;
+                string why = WhyNotReady(d);
+                if (why != null)
+                {
+                    if (!silent) ModConsole.Log("[CSE] " + d.Path + " not locked: " + why);
+                    continue;
+                }
                 if (d.Open != null && d.Open.Value) continue;
                 SetLocked(d, true, silent);
             }

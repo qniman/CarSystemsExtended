@@ -79,18 +79,21 @@ namespace CSE.Parts
         // ---------------------------------------------------------------- mounts
 
         /// Mount transform for a part: parent plus local position/rotation.
-        public static bool ResolveMount(Part part, int index, out Transform parent, out Vector3 pos, out Quaternion rot)
+        /// anyActive: also accept an anchor that is switched off right now (restoring a save while
+        /// the car is being toggled by the game or an optimisation mod).
+        public static bool ResolveMount(Part part, int index, out Transform parent, out Vector3 pos, out Quaternion rot,
+            bool anyActive = false)
         {
             parent = null;
             pos = Vector3.zero;
             rot = Quaternion.identity;
             var mounts = part.Def.Mounts;
             if (index < 0 || index >= mounts.Length) return false;
-            return ResolveMount(mounts[index], part, out parent, out pos, out rot);
+            return ResolveMount(mounts[index], part, out parent, out pos, out rot, anyActive);
         }
 
         /// The transform a mount is measured from: the parent part, the RefPath object or the car.
-        public static Transform Anchor(MountDef m, Part self = null)
+        public static Transform Anchor(MountDef m, Part self = null, bool anyActive = false)
         {
             if (m.ParentPart != null)
             {
@@ -103,15 +106,16 @@ namespace CSE.Parts
             if (car == null) return null;
             if (m.RefPath == null) return car.transform;
             var anchor = GameRefs.FindInCar(m.RefPath);
-            return anchor != null && anchor.gameObject.activeInHierarchy ? anchor : null;
+            return anchor != null && (anyActive || anchor.gameObject.activeInHierarchy) ? anchor : null;
         }
 
-        public static bool ResolveMount(MountDef m, Part self, out Transform parent, out Vector3 pos, out Quaternion rot)
+        public static bool ResolveMount(MountDef m, Part self, out Transform parent, out Vector3 pos, out Quaternion rot,
+            bool anyActive = false)
         {
             parent = null;
             pos = Vector3.zero;
             rot = Quaternion.identity;
-            var anchor = Anchor(m, self);
+            var anchor = Anchor(m, self, anyActive);
             if (anchor == null) return false;
 
             if (m.ParentPart != null)

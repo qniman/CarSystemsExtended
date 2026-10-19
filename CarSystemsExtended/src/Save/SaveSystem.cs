@@ -67,9 +67,10 @@ namespace CSE.Save
                 {
                     Def = p.Def.Id,
                     Uid = p.Uid,
-                    Installed = p.Installed,
-                    Mount = p.MountIndex,
-                    Wire = p.WireConnected,
+                    // still waiting for its mount after the last load: keep it installed
+                    Installed = p.Installed || p.AwaitingRestore,
+                    Mount = p.AwaitingRestore ? p.RestoreMount : p.MountIndex,
+                    Wire = p.AwaitingRestore ? p.RestoreWire : p.WireConnected,
                     Damaged = p.Damaged,
                     Data = p.Data,
                     Price = p.Price,
@@ -78,6 +79,7 @@ namespace CSE.Save
                     Bolts = new int[p.Bolts.Count],
                 };
                 for (int i = 0; i < p.Bolts.Count; i++) s.Bolts[i] = p.Bolts[i].Stage;
+                if (p.AwaitingRestore && p.RestoreBolts != null) s.Bolts = p.RestoreBolts;
                 data.Parts.Add(s);
             }
             SaveLoad.SerializeSaveFile(mod, data, File);
@@ -124,10 +126,15 @@ namespace CSE.Save
                 foreach (var kv in spawned)
                 {
                     if (kv.Key.Def != def || !kv.Value.Installed) continue;
-                    if (kv.Key.Install(kv.Value.Mount, kv.Value.Bolts, true))
+                    if (kv.Key.Install(kv.Value.Mount, kv.Value.Bolts, true, true))
                         kv.Key.WireConnected = kv.Value.Wire;
                     else
-                        ModConsole.Warning("[CSE] Could not reinstall " + kv.Key.Uid + ", left loose");
+                    {
+                        // The mount may only appear a moment later (game parts still attaching,
+                        // other mods); keep trying instead of dropping the part.
+                        ModConsole.Log("[CSE] Mount of " + kv.Key.Uid + " not there yet, retrying");
+                        kv.Key.RestoreLater(kv.Value.Mount, kv.Value.Bolts, kv.Value.Wire);
+                    }
                 }
             }
 
