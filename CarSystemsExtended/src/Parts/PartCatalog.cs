@@ -284,7 +284,8 @@ namespace CSE.Parts
             },
             Bolts = new[]
             {
-                new BoltDef(new Vector3(0f, -0.0225f, 0.035f), new Vector3(90, 0, 0), 8),
+                // Head on top of the foot, going down through it into the body.
+                new BoltDef(new Vector3(0f, -0.02f, 0.035f), new Vector3(-90, 0, 0), 8),
             },
             Wired = true,
             PlugPos = new Vector3(-0.033f, 0f, 0f),

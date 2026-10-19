@@ -23,6 +23,14 @@ namespace CSE.Core
         public static void Disassemble(Vector3 pos) { Game("CarBuilding", "disassemble", pos); }
         public static void BoltScrew(Vector3 pos) { Game("CarBuilding", "bolt_screw", pos); }
 
+        /// Pulling the handle of a locked door: the latch rattles against the lock (two game
+        /// sounds picked by ear, alternated so it does not sound canned).
+        public static void LockedDoorRattle(Vector3 pos)
+        {
+            if (Random.value < 0.5f) Game("Valmet", "tractor_difflock", pos, 0.8f);
+            else Game("CarFoley", "bus_door_open", pos, 0.8f);
+        }
+
         // ---- synthesized clips
 
         const int Rate = 22050;

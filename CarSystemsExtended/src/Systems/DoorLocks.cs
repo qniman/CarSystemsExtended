@@ -249,8 +249,7 @@ namespace CSE.Systems
                 else
                 {
                     Gui.Interaction(L.T("locked"));
-                    if (Input.GetMouseButtonDown(0))
-                        Sfx.Game("CarFoley", "dash_button", d.T.position, 0.8f);
+                    if (Input.GetMouseButtonDown(0)) Sfx.LockedDoorRattle(d.T.position);
                 }
                 return;
             }
