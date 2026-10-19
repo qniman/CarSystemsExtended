@@ -57,7 +57,8 @@ My Summer Car mod (MSCLoader) by **qniman**: 1995-style aftermarket alarm, centr
 ## Versions
 - `v1.0.0` (tag) = everything before the catalog cover; `release/CarSystemsExtended-1.0.0.zip` matches it (release binaries are gitignored).
 - `v1.1.0` (tag) = catalog cover, physical keys, A23 battery, blowing fuse, Blender models; `release/CarSystemsExtended-1.1.0/` (DLL + `CHANGELOG.txt`) and `.zip`.
-- **1.1.1 in progress** (code says 1.1.1, branch `fix/player-reports`): fixes from player reports on Nexus. Tag + zip only when the user says it is ready.
+- `v1.1.1` (tag) = player-report patch (BetterMSC bolts, Estate indicators, two-way fob replies, game bolt look, hinge plug, save backup, stability); `release/CarSystemsExtended-1.1.1/` + `.zip`.
+- Next work goes into a new version: ask the user for the number; tag + zip only when they say it is ready.
 - Nexus page text: `release/NEXUS_DESCRIPTION.txt` (EN/RU BBCode, Nexus sections).
 
 ## Open / next
