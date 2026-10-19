@@ -510,6 +510,37 @@ namespace CSE.Systems
 
         static Material unitLed, dashLed;
         static Part unitLedOwner, dashLedOwner;
+        static Light dashGlow;
+        static Part dashGlowOwner;
+
+        /// A tiny red point light at the dash LED, so in the dark it tints the dash top and the
+        /// windscreen around it like a real one does. Small range: costs next to nothing.
+        static Light GlowOf(Part p)
+        {
+            if (p != dashGlowOwner || (p != null && dashGlow == null))
+            {
+                if (dashGlow != null) dashGlow.enabled = false; // LED taken off: its glow goes out
+                dashGlowOwner = p;
+                dashGlow = null;
+                var led = p != null ? p.transform.Find("led") : null;
+                var old = led != null ? led.Find("cse_led_glow") : null;
+                if (old != null) dashGlow = old.GetComponent<Light>();
+                else if (led != null)
+                {
+                    var go = new GameObject("cse_led_glow");
+                    go.transform.parent = led;
+                    go.transform.localPosition = Vector3.zero;
+                    dashGlow = go.AddComponent<Light>();
+                    dashGlow.type = LightType.Point;
+                    dashGlow.color = new Color(1f, 0.08f, 0.04f);
+                    dashGlow.range = 0.12f;
+                    dashGlow.intensity = 0.8f;
+                    dashGlow.shadows = LightShadows.None;
+                    dashGlow.enabled = false;
+                }
+            }
+            return dashGlow;
+        }
 
         static Material LedOf(Part p, ref Part owner, ref Material mat)
         {
@@ -569,6 +600,8 @@ namespace CSE.Systems
             var d = Device(PartCatalog.StatusLed);
             var dm = LedOf(d ?? PartManager.FindInstalled(PartCatalog.StatusLed.Id), ref dashLedOwner, ref dashLed);
             if (dm != null) dm.color = status && d != null ? Shapes.LedRed : Shapes.LedOff;
+            var glow = GlowOf(PartManager.FindInstalled(PartCatalog.StatusLed.Id));
+            if (glow != null) glow.enabled = status && d != null;
         }
     }
 
