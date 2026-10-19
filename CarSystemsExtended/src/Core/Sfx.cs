@@ -27,7 +27,7 @@ namespace CSE.Core
         /// sounds picked by ear, alternated so it does not sound canned).
         public static void LockedDoorRattle(Vector3 pos)
         {
-            if (Random.value < 0.5f) Game("Valmet", "tractor_difflock", pos, 0.8f);
+            if (UnityEngine.Random.value < 0.5f) Game("Valmet", "tractor_difflock", pos, 0.8f);
             else Game("CarFoley", "bus_door_open", pos, 0.8f);
         }
 
@@ -200,20 +200,46 @@ namespace CSE.Core
             return clip;
         }
 
+        // The fob's piezo is the game's electronic beep (HouseFoley/electronic_beep), played at the
+        // player's ear at different pitches: (pitch, start time) pairs. Our synthesized tune is
+        // the fallback if the game sound is not there.
+        const float FobBeepVolume = 0.6f;
+
+        static bool FobBeeps(params float[] pitchAndTime)
+        {
+            var cam = GameRefs.Camera;
+            if (cam == null) return true;
+            try
+            {
+                for (int i = 0; i + 1 < pitchAndTime.Length; i += 2)
+                    MasterAudio.PlaySound3DAtVector3AndForget("HouseFoley", cam.transform.position, FobBeepVolume,
+                        pitchAndTime[i], pitchAndTime[i + 1], "electronic_beep");
+                return true;
+            }
+            catch (Exception e)
+            {
+                ModConsole.Warning("[CSE] fob beep: " + e.Message);
+                return false;
+            }
+        }
+
         public static void FobSend()
         {
+            if (FobBeeps(1f, 0f, 1.12f, 0.1f, 1.26f, 0.2f)) return;
             if (fobSend == null) fobSend = Melody("cse_fob_send", 2093, 0.07f, 0, 0.03f, 2637, 0.07f, 0, 0.03f, 3136, 0.1f);
             FobSource.PlayOneShot(fobSend);
         }
 
         public static void FobOk()
         {
+            if (FobBeeps(1.26f, 0f, 1.26f, 0.13f, 1.5f, 0.26f)) return;
             if (fobOk == null) fobOk = Melody("cse_fob_ok", 3136, 0.09f, 0, 0.04f, 3136, 0.09f, 0, 0.04f, 4186, 0.25f);
             FobSource.PlayOneShot(fobOk);
         }
 
         public static void FobFail()
         {
+            if (FobBeeps(0.7f, 0f, 0.7f, 0.26f)) return;
             if (fobFail == null) fobFail = Melody("cse_fob_fail", 880, 0.18f, 0, 0.08f, 880, 0.3f);
             FobSource.PlayOneShot(fobFail);
         }
@@ -250,6 +276,7 @@ namespace CSE.Core
         /// The car confirms locking: one short blip on the fob.
         public static void FobLocked()
         {
+            if (FobBeeps(1.4f, 0f)) return;
             if (fobLocked == null) fobLocked = Melody("cse_fob_locked", 3520, 0.06f);
             FobSource.PlayOneShot(fobLocked);
         }
@@ -257,6 +284,7 @@ namespace CSE.Core
         /// The car confirms unlocking: two short blips.
         public static void FobUnlocked()
         {
+            if (FobBeeps(1.4f, 0f, 1.4f, 0.12f)) return;
             if (fobUnlocked == null) fobUnlocked = Melody("cse_fob_unlocked", 3520, 0.06f, 0, 0.06f, 3520, 0.06f);
             FobSource.PlayOneShot(fobUnlocked);
         }
@@ -264,12 +292,14 @@ namespace CSE.Core
         /// The remote got no reply from the car: one long low buzz.
         public static void FobNoLink()
         {
+            if (FobBeeps(0.6f, 0f, 0.6f, 0.08f, 0.6f, 0.16f, 0.6f, 0.24f)) return;
             if (fobNoLink == null) fobNoLink = Melody("cse_fob_nolink", 523, 0.6f);
             FobSource.PlayOneShot(fobNoLink);
         }
 
         public static void FobStop()
         {
+            if (FobBeeps(1.26f, 0f, 1.12f, 0.1f, 1f, 0.2f)) return;
             if (fobStop == null) fobStop = Melody("cse_fob_stop", 3136, 0.08f, 0, 0.03f, 2637, 0.08f, 0, 0.03f, 2093, 0.14f);
             FobSource.PlayOneShot(fobStop);
         }
