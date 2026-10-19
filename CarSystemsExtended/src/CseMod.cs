@@ -43,7 +43,7 @@ namespace CSE
         readonly System.Collections.Generic.Dictionary<string, int> frameErrors = new System.Collections.Generic.Dictionary<string, int>();
         SettingsKeybind lockKey, unlockKey, startKey, keysKey, dropKeysKey;
         SettingsSliderInt warmTemp, warmMinutes;
-        SettingsKeybind spawnKitKey, spawnLocksKey, spawnServoKey, deliverKey, mountEditorKey, testSirenKey;
+        SettingsKeybind spawnKitKey, spawnLocksKey, spawnServoKey, deliverKey, mountEditorKey, testSirenKey, auditionKey;
         bool ready;
 
         public override void ModSetup()
@@ -85,6 +85,7 @@ namespace CSE
             deliverKey = Keybind.Add("cse_deliver_now", "Debug: deliver posted orders now", KeyCode.F2);
             mountEditorKey = Keybind.Add("cse_mount_editor", "Debug: toggle mount editor", KeyCode.F6);
             testSirenKey = Keybind.Add("cse_test_siren", "Debug: test siren chirp", KeyCode.F5);
+            auditionKey = Keybind.Add("cse_sound_audition", "Debug: play next candidate game sound", KeyCode.F1);
         }
 
         bool Debug
@@ -109,6 +110,7 @@ namespace CSE
                 RemoteStart.Init(warmTemp, warmMinutes);
                 MailOrder.Init();
                 MountEditor.Init(ModLoader.GetModSettingsFolder(this));
+                SoundAudition.Init();
                 var save = SaveSystem.Load(this);
                 KeySystem.Restore(save != null ? save.KeysPocket : null, save != null ? save.KeysIgnition : null,
                     save != null && save.KeysSaved, save != null && save.FobOnKeys);
@@ -188,6 +190,7 @@ namespace CSE
             if (spawnServoKey.GetKeybindDown()) SpawnKit(PartCatalog.Kits.ChokeServo);
             if (mountEditorKey.GetKeybindDown()) MountEditor.Toggle();
             if (testSirenKey.GetKeybindDown()) AlarmSystem.Chirp(2);
+            if (auditionKey.GetKeybindDown()) SoundAudition.PlayNext();
         }
 
         void Run(string system, Action tick)

@@ -155,6 +155,29 @@ namespace CSE.Parts
             gameObject.layer = LayerMask.NameToLayer("Parts");
         }
 
+        // Door harness connector, in car space from the door's hinge pivot: a little behind the
+        // hinge line (inside the door edge), below it, and towards the cabin.
+        static readonly Vector3 HingePlugOffset = new Vector3(0.03f, -0.08f, -0.05f);
+
+        /// Puts the wiring point on the device, or at the door's hinge-edge connector.
+        void PlacePlug()
+        {
+            Plug.localPosition = Def.PlugPos;
+            var door = Installed && Def.PlugAtHinge ? transform.parent : null;
+            var pivot = door != null ? door.parent : null;
+            var car = GameRefs.Car;
+            if (pivot == null || car == null) return;
+            var o = HingePlugOffset;
+            // towards the cabin: +X for the left door, -X for the right one
+            if (car.transform.InverseTransformPoint(pivot.position).x > 0f) o.x = -o.x;
+            // In door space, so it is right even with the door swung open: the hinge point stays
+            // put as the door turns, and car directions are taken in the closed door's frame
+            // (the pivot's), like the mount itself (PartManager.ResolveMount).
+            Vector3 hinge = door.InverseTransformPoint(pivot.position);
+            Quaternion carToFrame = Quaternion.Inverse(pivot.rotation) * car.transform.rotation;
+            Plug.position = door.TransformPoint(hinge + carToFrame * o);
+        }
+
         void SetSolid(bool solid)
         {
             var col = GetComponent<BoxCollider>();
@@ -191,6 +214,7 @@ namespace CSE.Parts
             transform.localRotation = rot;
 
             Installed = true;
+            PlacePlug();
             boltRoot.gameObject.SetActive(true);
             for (int i = 0; i < Bolts.Count; i++)
                 Bolts[i].SetStage(boltStages != null && i < boltStages.Length ? boltStages[i] : 0);
@@ -205,6 +229,7 @@ namespace CSE.Parts
             Installed = false;
             MountIndex = -1;
             WireConnected = false;
+            PlacePlug();
             foreach (var b in Bolts) b.SetStage(0);
             boltRoot.gameObject.SetActive(false);
             transform.parent = null;

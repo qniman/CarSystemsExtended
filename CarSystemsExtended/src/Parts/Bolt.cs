@@ -28,6 +28,9 @@ namespace CSE.Parts
 
         Transform head;
         FsmInt fsmStage;
+        // Rest pose of the head mesh: the game bolt's tilt and seat (identity / zero for ours).
+        Quaternion headBase = Quaternion.identity;
+        Vector3 headSeat;
 
         public static Bolt Create(Part owner, Transform parent, BoltDef def)
         {
@@ -48,13 +51,26 @@ namespace CSE.Parts
             bolt.Size = def.Size;
 
             // The game highlights only the first child's renderer, so head and shank are one mesh
-            // on a single child. Its scale undoes the size-encoding scale of the bolt object.
+            // on a single child. Looks like the game's own bolts when one is found to copy;
+            // otherwise our own mesh, whose scale undoes the size-encoding scale of the bolt.
             var mesh = new GameObject("mesh");
             mesh.transform.parent = go.transform;
             mesh.transform.localPosition = Vector3.zero;
-            mesh.transform.localScale = Vector3.one / s;
-            mesh.AddComponent<MeshFilter>().sharedMesh = BoltMesh(def.Size);
-            mesh.AddComponent<MeshRenderer>().sharedMaterial = SteelMaterial;
+            var look = GameLook(def.Size);
+            if (look != null)
+            {
+                mesh.transform.localScale = look.Scale;
+                mesh.AddComponent<MeshFilter>().sharedMesh = look.Mesh;
+                mesh.AddComponent<MeshRenderer>().sharedMaterials = look.Materials;
+                bolt.headBase = look.Base;
+                bolt.headSeat = look.Seat;
+            }
+            else
+            {
+                mesh.transform.localScale = Vector3.one / s;
+                mesh.AddComponent<MeshFilter>().sharedMesh = BoltMesh(def.Size);
+                mesh.AddComponent<MeshRenderer>().sharedMaterial = SteelMaterial;
+            }
             bolt.head = mesh.transform;
             bolt.AddScrewFsm(go, mesh);
             bolt.UpdateVisual();
@@ -91,6 +107,78 @@ namespace CSE.Parts
                 if (Bolt != null) ToolHook.Step(Bolt, Dir);
                 Finish();
             }
+        }
+
+        // ---------------------------------------------------------------- the game's bolt look
+
+        class Look
+        {
+            public Mesh Mesh;
+            public Material[] Materials;
+            public Vector3 Scale;
+            public Quaternion Base;
+            public Vector3 Seat; // head position when fully tight
+            public int Size;
+        }
+
+        static readonly System.Collections.Generic.List<Look> looks = new System.Collections.Generic.List<Look>();
+        static bool looked;
+
+        /// New game session: the game's bolts are new objects.
+        public static void ForgetGameLook()
+        {
+            looks.Clear();
+            looked = false;
+        }
+
+        /// The mesh, material and rest pose of a game bolt of this size (the nearest size if
+        /// there is none), copied from the head mesh the bolt's own "Screw" FSM names.
+        static Look GameLook(int size)
+        {
+            if (looks.Exists(l => l.Mesh == null)) ForgetGameLook(); // unloaded with a scene
+            if (!looked)
+            {
+                looked = true;
+                ScanGameBolts();
+            }
+            Look best = null;
+            foreach (var l in looks)
+                if (best == null || Mathf.Abs(l.Size - size) < Mathf.Abs(best.Size - size)) best = l;
+            return best;
+        }
+
+        static void ScanGameBolts()
+        {
+            var root = GameRefs.Car;
+            if (root == null) return;
+            foreach (var fsm in root.GetComponentsInChildren<PlayMakerFSM>(true))
+            {
+                if (fsm.FsmName != "Screw" || fsm.gameObject.name != "BoltPM" || fsm.GetComponent<Bolt>() != null) continue;
+                var thisBolt = fsm.FsmVariables.FindFsmGameObject("ThisBolt");
+                var stage = fsm.FsmVariables.FindFsmInt("Stage");
+                var m = thisBolt != null ? thisBolt.Value : null;
+                if (m == null || m.transform.parent != fsm.transform) continue;
+                var mf = m.GetComponent<MeshFilter>();
+                var mr = m.GetComponent<MeshRenderer>();
+                if (mf == null || mf.sharedMesh == null || mr == null) continue;
+                int sz = Mathf.RoundToInt(fsm.transform.localScale.x * 10f);
+                if (looks.Exists(l => l.Size == sz)) continue;
+
+                var t = m.transform;
+                var e = t.localEulerAngles;
+                int st = stage != null ? stage.Value : MaxStage;
+                looks.Add(new Look
+                {
+                    Mesh = mf.sharedMesh,
+                    Materials = mr.sharedMaterials,
+                    Scale = t.localScale,
+                    Base = Quaternion.Euler(e.x, e.y, 0f),
+                    Seat = t.localPosition - new Vector3(0f, 0f, (MaxStage - st) * StepDepth),
+                    Size = sz,
+                });
+                ModConsole.Log("[CSE] Bolt look " + sz + " mm from " + fsm.transform.parent.name + ": mesh " + mf.sharedMesh.name);
+            }
+            if (looks.Count == 0) ModConsole.Warning("[CSE] No game bolt found to copy, using our own bolt mesh");
         }
 
         static Material steel;
@@ -154,8 +242,8 @@ namespace CSE.Parts
         void UpdateVisual()
         {
             if (head == null) return;
-            head.localPosition = new Vector3(0, 0, (MaxStage - Stage) * StepDepth);
-            head.localRotation = Quaternion.AngleAxis(Stage * StepAngle, Vector3.forward);
+            head.localPosition = headSeat + new Vector3(0, 0, (MaxStage - Stage) * StepDepth);
+            head.localRotation = headBase * Quaternion.AngleAxis(Stage * StepAngle, Vector3.forward);
         }
     }
 }

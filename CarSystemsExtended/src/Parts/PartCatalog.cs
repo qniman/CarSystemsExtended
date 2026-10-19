@@ -251,6 +251,7 @@ namespace CSE.Parts
             },
             Wired = true,
             PlugPos = new Vector3(0f, 0f, -0.045f),
+            PlugAtHinge = true,
             Model = "lock_actuator",
             Build = WithModel("lock_actuator", 0f, t =>
             {

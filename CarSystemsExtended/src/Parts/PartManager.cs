@@ -18,6 +18,7 @@ namespace CSE.Parts
             defs.Clear();
             nextUid = 1;
             foreach (var d in PartCatalog.All) defs[d.Id] = d;
+            Bolt.ForgetGameLook();
         }
 
         public static PartDef GetDef(string id)

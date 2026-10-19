@@ -57,6 +57,7 @@ namespace CSE.Systems
             sirenSource = null;
             pendingRelock = false;
             consumedLockPress = false;
+            fobReply = FobReply.None;
             sirenWasReady = false;
             // parts restored from the save (some a moment later) are not a fresh install
             selfTestFrom = Time.time + 5f;
@@ -267,16 +268,63 @@ namespace CSE.Systems
             }
         }
 
+        // ---------------------------------------------------------------- fob replies
+        //
+        // Two-way remote: the car confirms lock and unlock on the fob (one blip / two blips, the
+        // failure tune when it refused to arm). No reply at all - out of range, no power - and
+        // the fob buzzes "no link" by itself.
+
+        enum FobReply { None, Locked, Unlocked, Refused, NoLink }
+
+        const float FobReplyDelay = 0.4f;
+        const float FobNoLinkDelay = 1.0f;
+
+        static FobReply fobReply;
+        static float fobReplyAt;
+
+        static void ReplyToFob(FobReply r)
+        {
+            fobReply = r;
+            fobReplyAt = Time.time + (r == FobReply.NoLink ? FobNoLinkDelay : FobReplyDelay);
+        }
+
+        static void TickFobReply()
+        {
+            if (fobReply == FobReply.None || Time.time < fobReplyAt) return;
+            var r = fobReply;
+            fobReply = FobReply.None;
+            if (r == FobReply.NoLink)
+            {
+                if (HandFobAlive) Sfx.FobNoLink();
+                return;
+            }
+            if (!FobHearsAny) return;
+            if (r == FobReply.Locked) Sfx.FobLocked();
+            else if (r == FobReply.Unlocked) Sfx.FobUnlocked();
+            else Sfx.FobFail();
+        }
+
+        /// Presses the remote for lock/unlock. True if the car got it; otherwise the fob is set
+        /// to buzz "no link" (if there is a live remote in hand at all).
+        static bool SendFromFob()
+        {
+            bool live = HandFobAlive;
+            if (PressFob() && Powered) return true;
+            if (live) ReplyToFob(FobReply.NoLink);
+            return false;
+        }
+
         public static void OnLockPressed()
         {
             if (consumedLockPress) { consumedLockPress = false; return; }
-            if (!PressFob() || !Powered) return;
+            if (!SendFromFob()) return;
 
             if (DoorLocks.AnyDoorOpen || HoodOpen)
             {
                 // Something is open: refuse to arm and complain.
                 Chirp(3);
                 errorUntil = Time.time + 1.2f;
+                ReplyToFob(FobReply.Refused);
                 return;
             }
             if (Current == Mode.Triggered) StopSiren();
@@ -287,11 +335,12 @@ namespace CSE.Systems
             DoorLocks.LockAll();
             Chirp(1);
             Flasher.Flash(1);
+            ReplyToFob(FobReply.Locked);
         }
 
         public static void OnUnlockPressed()
         {
-            if (!PressFob() || !Powered) return;
+            if (!SendFromFob()) return;
             StopSiren();
             Current = Mode.Disarmed;
             DoorLocks.UnlockAll();
@@ -299,6 +348,7 @@ namespace CSE.Systems
             Chirp(AlarmMemory ? 4 : 2);
             Flasher.Flash(2);
             AlarmMemory = false;
+            ReplyToFob(FobReply.Unlocked);
         }
 
         // ---------------------------------------------------------------- sensors
@@ -452,6 +502,7 @@ namespace CSE.Systems
             Sfx.SetFobAlarm(pager, pagerAt);
             if (pager) KeySystem.DrainListening(PagerDrainPerSec * Time.deltaTime);
             Flasher.Tick();
+            TickFobReply();
             UpdateLeds();
         }
 

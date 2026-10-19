@@ -53,6 +53,9 @@ namespace CSE.Parts
         public bool Wired;
         /// Local position of the wire plug on the part.
         public Vector3 PlugPos;
+        /// Installed in a door: the wire is plugged in at the door's harness connector on the
+        /// hinge edge (like a real door loom), not at the device inside the door.
+        public bool PlugAtHinge;
         /// Builds placeholder visuals under the part root.
         public Action<Transform> Build;
         /// Embedded Blender model (Assets/models/&lt;Model&gt;.obj); when it loads, the collider

@@ -158,7 +158,7 @@ namespace CSE.Core
         // ---- key fob piezo (two-way remote): played in the player's hand, not in 3D
 
         static AudioSource fobSource;
-        static AudioClip fobSend, fobOk, fobFail, fobStop, fobNoLink;
+        static AudioClip fobSend, fobOk, fobFail, fobStop, fobNoLink, fobLocked, fobUnlocked;
 
         static AudioSource FobSource
         {
@@ -237,6 +237,20 @@ namespace CSE.Core
             fobAlarmSource.spatialBlend = at != null ? 1f : 0f;
             if (at != null) fobAlarmSource.transform.position = at.position;
             if (!fobAlarmSource.isPlaying) fobAlarmSource.Play();
+        }
+
+        /// The car confirms locking: one short blip on the fob.
+        public static void FobLocked()
+        {
+            if (fobLocked == null) fobLocked = Melody("cse_fob_locked", 3520, 0.06f);
+            FobSource.PlayOneShot(fobLocked);
+        }
+
+        /// The car confirms unlocking: two short blips.
+        public static void FobUnlocked()
+        {
+            if (fobUnlocked == null) fobUnlocked = Melody("cse_fob_unlocked", 3520, 0.06f, 0, 0.06f, 3520, 0.06f);
+            FobSource.PlayOneShot(fobUnlocked);
         }
 
         /// The remote got no reply from the car: one long low buzz.
