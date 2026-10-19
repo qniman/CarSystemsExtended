@@ -46,9 +46,26 @@ namespace CSE.Save
     public static class SaveSystem
     {
         const string File = "cse_save";
+        const string Backup = "cse_save.bak";
+
+        /// The main file read fine (or was written by us) this session, so it is a good backup.
+        static bool mainIsGood;
 
         public static void Save(Mod mod)
         {
+            // A crash or a full disk mid-write would otherwise leave nothing to come back to.
+            try
+            {
+                string folder = ModLoader.GetModSettingsFolder(mod);
+                string main = System.IO.Path.Combine(folder, File);
+                if (mainIsGood && System.IO.File.Exists(main))
+                    System.IO.File.Copy(main, System.IO.Path.Combine(folder, Backup), true);
+            }
+            catch (Exception e)
+            {
+                ModConsole.Warning("[CSE] Could not back up the save: " + e.Message);
+            }
+
             var data = new SaveData
             {
                 AlarmPower = AlarmWiring.PowerConnected,
@@ -83,21 +100,49 @@ namespace CSE.Save
                 data.Parts.Add(s);
             }
             SaveLoad.SerializeSaveFile(mod, data, File);
+            mainIsGood = true;
+        }
+
+        static SaveData Read(Mod mod, string file)
+        {
+            try
+            {
+                return SaveLoad.DeserializeSaveFile<SaveData>(mod, file);
+            }
+            catch (Exception e)
+            {
+                ModConsole.Warning("[CSE] Could not read " + file + ": " + e.Message);
+                return null;
+            }
         }
 
         /// Restores parts and systems. Returns the save (null if there is none) for the systems
         /// that need to restore after everything else is in place (keys).
         public static SaveData Load(Mod mod)
         {
-            SaveData data;
-            try
+            mainIsGood = false;
+            string folder = ModLoader.GetModSettingsFolder(mod);
+            bool mainExists = System.IO.File.Exists(System.IO.Path.Combine(folder, File));
+            var data = mainExists ? Read(mod, File) : null;
+            if (data != null && data.Parts != null) mainIsGood = true;
+            else if (mainExists)
             {
-                data = SaveLoad.DeserializeSaveFile<SaveData>(mod, File);
-            }
-            catch (Exception e)
-            {
-                ModConsole.Warning("[CSE] Could not read save, starting fresh: " + e.Message);
-                return null;
+                // Unreadable (not missing: a deleted save means a fresh start). Keep the broken
+                // file for a bug report and continue from the backup.
+                try
+                {
+                    System.IO.File.Copy(System.IO.Path.Combine(folder, File),
+                        System.IO.Path.Combine(folder, File + ".broken-" + DateTime.Now.ToString("yyyyMMdd-HHmmss")), true);
+                }
+                catch (Exception) { }
+                data = Read(mod, Backup);
+                if (data != null && data.Parts != null)
+                    ModConsole.Warning("[CSE] Save was unreadable, restored the previous one (" + Backup + ")");
+                else
+                {
+                    ModConsole.Warning("[CSE] No readable save, starting fresh");
+                    return null;
+                }
             }
             if (data == null || data.Parts == null) return null;
 

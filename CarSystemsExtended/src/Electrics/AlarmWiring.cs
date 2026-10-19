@@ -253,8 +253,12 @@ namespace CSE.Electrics
             line.useWorldSpace = true;
             line.SetWidth(0.005f, 0.005f);
             line.SetVertexCount(2);
-            line.material = Shapes.Material(color);
-            grommet = Shapes.Add(go.transform, PrimitiveType.Sphere, Vector3.zero, Vector3.one * 0.014f, Shapes.Black, default(Vector3), "grommet").transform;
+            line.material = SharedMaterial(color);
+            var g = Shapes.Add(go.transform, PrimitiveType.Sphere, Vector3.zero, Vector3.one * 0.014f, Shapes.Black, default(Vector3), "grommet");
+            var gr = g.GetComponent<Renderer>();
+            Object.Destroy(gr.material);
+            gr.sharedMaterial = SharedMaterial(Shapes.Black);
+            grommet = g.transform;
             Update();
         }
 
@@ -267,6 +271,15 @@ namespace CSE.Electrics
             line.SetPosition(0, a);
             line.SetPosition(1, b);
             grommet.position = b;
+        }
+
+        static readonly Dictionary<Color, Material> materials = new Dictionary<Color, Material>();
+
+        static Material SharedMaterial(Color color)
+        {
+            Material m;
+            if (materials.TryGetValue(color, out m) && m != null) return m;
+            return materials[color] = Shapes.Material(color);
         }
 
         public void Destroy()

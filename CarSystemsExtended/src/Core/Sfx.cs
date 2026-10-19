@@ -32,13 +32,13 @@ namespace CSE.Core
         /// Short siren chirp used for lock/unlock.
         public static AudioClip Chirp
         {
-            get { return chirp ?? (chirp = Sweep("cse_chirp", 0.12f, 1900f, 2600f, 0.8f)); }
+            get { return chirp != null ? chirp : (chirp = Sweep("cse_chirp", 0.12f, 1900f, 2600f, 0.8f)); }
         }
 
         /// Plain piezo beep (fob errors, parking sensors).
         public static AudioClip Beep
         {
-            get { return beep ?? (beep = Sweep("cse_beep", 0.08f, 2700f, 2700f, 0.5f)); }
+            get { return beep != null ? beep : (beep = Sweep("cse_beep", 0.08f, 2700f, 2700f, 0.5f)); }
         }
 
         static AudioClip wail, thunk;

@@ -149,9 +149,16 @@ namespace CSE.Parts
             frozen = false;
             restPos = transform.position;
             hasRest = true;
+            SetSolid(true);
             gameObject.MakePickable();
             gameObject.tag = "PART";
             gameObject.layer = LayerMask.NameToLayer("Parts");
+        }
+
+        void SetSolid(bool solid)
+        {
+            var col = GetComponent<BoxCollider>();
+            if (col != null) col.isTrigger = !solid;
         }
 
         /// Snaps the part onto its mount. Returns false if the mount is not available. restoring =
@@ -175,6 +182,10 @@ namespace CSE.Parts
             body = null;
             frozen = false;
             gameObject.tag = "Untagged";
+            // Installed it is part of the car (or a door): a solid box there would join that
+            // rigidbody and could rub against the body, the door frame or the player. As a
+            // trigger it still takes the crosshair (Look) but has no physical presence.
+            SetSolid(false);
             transform.parent = parent;
             transform.localPosition = pos;
             transform.localRotation = rot;

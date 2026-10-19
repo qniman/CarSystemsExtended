@@ -41,9 +41,10 @@ namespace CSE.Parts
             },
             Bolts = new[]
             {
-                // Hangs under the dash: bolts go up through the ears, heads face down.
-                new BoltDef(new Vector3(-0.085f, -0.0175f, 0f), new Vector3(90, 0, 0), 7),
-                new BoltDef(new Vector3(0.085f, -0.0175f, 0f), new Vector3(90, 0, 0), 7),
+                // Its bottom (-Y) sits against the dash: heads on top of the ears, bolts going
+                // down through them into the body.
+                new BoltDef(new Vector3(-0.085f, -0.0135f, 0f), new Vector3(-90, 0, 0), 7),
+                new BoltDef(new Vector3(0.085f, -0.0135f, 0f), new Vector3(-90, 0, 0), 7),
             },
             PlugPos = new Vector3(-0.04f, 0f, -0.05f),
             Model = "alarm_unit",

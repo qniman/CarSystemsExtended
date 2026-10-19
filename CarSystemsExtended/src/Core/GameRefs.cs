@@ -46,9 +46,21 @@ namespace CSE.Core
             return Car != null && ItemPivot != null;
         }
 
+        static Camera camera;
+        static int cameraFrame = -1;
+
+        /// Camera.main searches by tag on every call; looked up once per frame.
         public static Camera Camera
         {
-            get { return Camera.main; }
+            get
+            {
+                if (cameraFrame != Time.frameCount || camera == null)
+                {
+                    camera = Camera.main;
+                    cameraFrame = Time.frameCount;
+                }
+                return camera;
+            }
         }
 
         /// Raw value of the wrench currently in hand (0 = no wrench).

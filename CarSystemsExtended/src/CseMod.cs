@@ -40,7 +40,7 @@ namespace CSE
 
         SettingsCheckBox debugMode;
         SettingsDropDownList language;
-        int frameErrors;
+        readonly System.Collections.Generic.Dictionary<string, int> frameErrors = new System.Collections.Generic.Dictionary<string, int>();
         SettingsKeybind lockKey, unlockKey, startKey, keysKey, dropKeysKey;
         SettingsSliderInt warmTemp, warmMinutes;
         SettingsKeybind spawnKitKey, spawnLocksKey, spawnServoKey, deliverKey, mountEditorKey, testSirenKey;
@@ -48,6 +48,8 @@ namespace CSE
 
         public override void ModSetup()
         {
+            remoteButtons = RemoteButtons;
+            debugKeys = DebugKeys;
             SetupFunction(Setup.ModSettings, CreateSettings);
             SetupFunction(Setup.ModSettingsLoaded, ApplyLanguage);
             SetupFunction(Setup.OnLoad, OnLoad);
@@ -96,7 +98,7 @@ namespace CSE
             {
                 if (!GameRefs.Init()) return;
                 CatalogUI.ResetState();
-                frameErrors = 0;
+                frameErrors.Clear();
                 ToolHook.Init();
                 PartManager.Reset();
                 AlarmWiring.Init();
@@ -137,49 +139,71 @@ namespace CSE
             }
         }
 
+        // Per-frame systems in order. Each runs on its own, so one that keeps failing (another
+        // mod changed the car, an unexpected game state) does not take the rest down with it:
+        // the keys, doors and alarm keep working even if, say, the mail order breaks.
+        static readonly Action tickLook = Look.Update, tickKeys = KeySystem.Tick, tickParts = PartManager.Tick,
+            tickDoors = DoorLocks.Tick, tickTool = ToolHook.Tick, tickWiring = AlarmWiring.Tick,
+            tickAlarm = AlarmSystem.Tick, tickRemoteStart = RemoteStart.Tick, tickMail = MailOrder.Tick,
+            tickCatalog = CatalogUI.Tick, tickMountEditor = MountEditor.Tick, tickHud = Gui.Apply;
+        Action remoteButtons, debugKeys;
+
         void OnUpdate()
         {
             if (!ready) return;
+            // While the catalog is open, clicks belong to the page, not the world.
+            bool reading = CatalogUI.IsOpen;
+            if (reading) Run("catalog", tickCatalog);
+            else
+            {
+                Run("look", tickLook);
+                Run("keys", tickKeys);
+                Run("parts", tickParts);
+                Run("doors", tickDoors);
+                Run("remote", remoteButtons);
+            }
+
+            Run("wrench", tickTool);
+            Run("wiring", tickWiring);
+            Run("alarm", tickAlarm);
+            Run("remote start", tickRemoteStart);
+            Run("mail order", tickMail);
+            if (Debug && !reading) Run("debug", debugKeys);
+            Run("mount editor", tickMountEditor);
+            Run("hud", tickHud);
+        }
+
+        void RemoteButtons()
+        {
+            if (lockKey.GetKeybindDown()) AlarmSystem.OnLockPressed();
+            if (unlockKey.GetKeybindDown()) AlarmSystem.OnUnlockPressed();
+            if (startKey.GetKeybindDown()) RemoteStart.OnButton();
+        }
+
+        void DebugKeys()
+        {
+            if (deliverKey.GetKeybindDown()) MailOrder.DeliverAllNow();
+            if (spawnKitKey.GetKeybindDown()) SpawnKit(PartCatalog.Kits.Alarm);
+            if (spawnLocksKey.GetKeybindDown()) SpawnKit(PartCatalog.Kits.DoorLocks);
+            if (spawnServoKey.GetKeybindDown()) SpawnKit(PartCatalog.Kits.ChokeServo);
+            if (mountEditorKey.GetKeybindDown()) MountEditor.Toggle();
+            if (testSirenKey.GetKeybindDown()) AlarmSystem.Chirp(2);
+        }
+
+        void Run(string system, Action tick)
+        {
             try
             {
-                // While the catalog is open, clicks belong to the page, not the world.
-                bool reading = CatalogUI.IsOpen;
-                if (reading) CatalogUI.Tick();
-                else
-                {
-                    Look.Update();
-                    KeySystem.Tick();
-                    PartManager.Tick();
-                    DoorLocks.Tick();
-                    if (lockKey.GetKeybindDown()) AlarmSystem.OnLockPressed();
-                    if (unlockKey.GetKeybindDown()) AlarmSystem.OnUnlockPressed();
-                    if (startKey.GetKeybindDown()) RemoteStart.OnButton();
-                }
-
-                ToolHook.Tick();
-                AlarmWiring.Tick();
-                AlarmSystem.Tick();
-                RemoteStart.Tick();
-                MailOrder.Tick();
-
-                if (Debug && !reading)
-                {
-                    if (deliverKey.GetKeybindDown()) MailOrder.DeliverAllNow();
-                    if (spawnKitKey.GetKeybindDown()) SpawnKit(PartCatalog.Kits.Alarm);
-                    if (spawnLocksKey.GetKeybindDown()) SpawnKit(PartCatalog.Kits.DoorLocks);
-                    if (spawnServoKey.GetKeybindDown()) SpawnKit(PartCatalog.Kits.ChokeServo);
-                    if (mountEditorKey.GetKeybindDown()) MountEditor.Toggle();
-                    if (testSirenKey.GetKeybindDown()) AlarmSystem.Chirp(2);
-                }
-                MountEditor.Tick();
-                Gui.Apply();
+                tick();
             }
             catch (Exception e)
             {
-                // Keep running (one broken system should not take the rest down), but do not
-                // flood the console if the same error repeats every frame.
-                if (++frameErrors <= 3) ModConsole.Error("[CSE] " + e);
-                if (frameErrors == 3) ModConsole.Error("[CSE] Further errors suppressed until the next load");
+                // Keep running, but do not flood the console if it repeats every frame.
+                int n;
+                frameErrors.TryGetValue(system, out n);
+                frameErrors[system] = ++n;
+                if (n <= 3) ModConsole.Error("[CSE] " + system + ": " + e);
+                if (n == 3) ModConsole.Error("[CSE] Further " + system + " errors suppressed until the next load");
             }
         }
 

@@ -16,7 +16,11 @@ namespace CSE.Parts
     public class Bolt : MonoBehaviour
     {
         public const int MaxStage = 8;
+        // Per step, in the bolt object's (size-scaled) space, like the game's bolts: 60 degrees
+        // and 2.5 mm * size/10 out. BetterMSC animates the mesh by the same amounts around and
+        // along its local Z, so its animation ends exactly where ours puts the head.
         const float StepDepth = 0.0025f;
+        const float StepAngle = 60f;
 
         public Part Owner;
         public int Size;
@@ -93,13 +97,14 @@ namespace CSE.Parts
 
         static Material SteelMaterial
         {
-            get { return steel ?? (steel = Shapes.Material(Shapes.Steel)); }
+            get { return steel != null ? steel : (steel = Shapes.Material(Shapes.Steel)); }
         }
 
         static readonly System.Collections.Generic.Dictionary<int, Mesh> meshes =
             new System.Collections.Generic.Dictionary<int, Mesh>();
 
-        /// Head plus shank along +Y (head at the origin, shank going down -Y), in metres.
+        /// Head at the origin, shank going down -Z (into the part), in metres: the bolt axis is
+        /// the mesh's own Z, which is what other mods' wrench animations spin around.
         static Mesh BoltMesh(int size)
         {
             Mesh m;
@@ -111,11 +116,12 @@ namespace CSE.Parts
 
             float head = size * 0.0016f;
             float shank = head * 0.55f;
+            var toZ = Quaternion.Euler(90, 0, 0); // cylinder Y onto Z
             var parts = new CombineInstance[2];
             parts[0].mesh = cyl;
-            parts[0].transform = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(head, 0.003f, head));
+            parts[0].transform = Matrix4x4.TRS(Vector3.zero, toZ, new Vector3(head, 0.003f, head));
             parts[1].mesh = cyl;
-            parts[1].transform = Matrix4x4.TRS(new Vector3(0, -0.0135f, 0), Quaternion.identity, new Vector3(shank, 0.0105f, shank));
+            parts[1].transform = Matrix4x4.TRS(toZ * new Vector3(0, -0.0135f, 0), toZ, new Vector3(shank, 0.0105f, shank));
 
             m = new Mesh { name = "cse_bolt_" + size };
             m.CombineMeshes(parts, true, true);
@@ -148,10 +154,8 @@ namespace CSE.Parts
         void UpdateVisual()
         {
             if (head == null) return;
-            float s = Size / 10f;
-            head.localPosition = new Vector3(0, 0, (MaxStage - Stage) * StepDepth / s);
-            // Tilt the mesh's Y axis onto the bolt's Z axis, then spin around that axis.
-            head.localRotation = Quaternion.AngleAxis(Stage * 45f, Vector3.forward) * Quaternion.Euler(90, 0, 0);
+            head.localPosition = new Vector3(0, 0, (MaxStage - Stage) * StepDepth);
+            head.localRotation = Quaternion.AngleAxis(Stage * StepAngle, Vector3.forward);
         }
     }
 }

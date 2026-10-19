@@ -56,7 +56,9 @@ namespace CSE.Core
         public static Model Get(string name)
         {
             Model m;
-            if (cache.TryGetValue(name, out m)) return m;
+            // Runtime meshes and materials can be unloaded with the scene (menu and back), so a
+            // cached model whose assets are gone is parsed again.
+            if (cache.TryGetValue(name, out m) && m.Mesh != null && Array.TrueForAll(m.Materials, x => x != null)) return m;
             if (missing.Contains(name)) return null;
             try
             {
