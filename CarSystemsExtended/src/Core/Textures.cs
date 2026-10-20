@@ -24,7 +24,7 @@ namespace CSE.Core
                 }
                 var bytes = new byte[s.Length];
                 s.Read(bytes, 0, bytes.Length);
-                tex = new Texture2D(2, 2, TextureFormat.RGB24, true);
+                tex = new Texture2D(2, 2, TextureFormat.ARGB32, true); // PNG alpha = gloss mask
                 if (!tex.LoadImage(bytes))
                 {
                     ModConsole.Warning("[CSE] Could not decode texture " + file);

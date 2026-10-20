@@ -108,8 +108,10 @@ namespace CSE.Core
             var mats = ParseMtl(mtl);
             var pos = new List<Vector3>();
             var nrm = new List<Vector3>();
+            var tex = new List<Vector2>();
             var verts = new List<Vector3>();
             var normals = new List<Vector3>();
+            var uvs = new List<Vector2>();
             var subs = new List<KeyValuePair<string, List<int>>>();
             List<int> current = null;
             var corners = new Dictionary<long, int>();
@@ -132,6 +134,9 @@ namespace CSE.Core
                     case "vn":
                         nrm.Add(new Vector3(F(p[1]), F(p[2]), F(p[3])));
                         break;
+                    case "vt":
+                        tex.Add(new Vector2(F(p[1]), F(p[2])));
+                        break;
                     case "usemtl":
                         current = new List<int>();
                         subs.Add(new KeyValuePair<string, List<int>>(p[1], current));
@@ -146,9 +151,10 @@ namespace CSE.Core
                         {
                             var idx = p[k].Split('/');
                             int vi = int.Parse(idx[0], CultureInfo.InvariantCulture) - 1;
+                            int ti = idx.Length > 1 && idx[1].Length > 0 ? int.Parse(idx[1], CultureInfo.InvariantCulture) - 1 : -1;
                             int ni = idx.Length > 2 && idx[2].Length > 0 ? int.Parse(idx[2], CultureInfo.InvariantCulture) - 1 : -1;
-                            // one Unity vertex per distinct position+normal pair
-                            long key = ((long)vi << 32) | (uint)ni;
+                            // one Unity vertex per distinct position + uv + normal (21 bits each)
+                            long key = ((long)vi << 42) | ((long)(ti + 1) << 21) | (long)(ni + 1);
                             int unity;
                             if (!corners.TryGetValue(key, out unity))
                             {
@@ -156,6 +162,7 @@ namespace CSE.Core
                                 corners[key] = unity;
                                 verts.Add(pos[vi]);
                                 normals.Add(ni >= 0 ? nrm[ni] : Vector3.up);
+                                uvs.Add(ti >= 0 ? tex[ti] : Vector2.zero);
                             }
                             current.Add(unity);
                         }
@@ -167,6 +174,7 @@ namespace CSE.Core
             var mesh = new Mesh { name = "cse_" + name };
             mesh.vertices = verts.ToArray();
             mesh.normals = normals.ToArray();
+            if (tex.Count > 0) mesh.uv = uvs.ToArray();
             mesh.subMeshCount = subs.Count;
             var materials = new Material[subs.Count];
             for (int i = 0; i < subs.Count; i++)
@@ -190,7 +198,9 @@ namespace CSE.Core
 
         static Shader specular;
 
-        /// Kd colour; shiny or metallic materials get the legacy specular shader.
+        /// Kd colour, or a baked texture (map_Kd, a PNG embedded next to the model). Shiny or
+        /// metallic materials get the legacy specular shader; on a textured one the texture's
+        /// alpha is the gloss mask (metal shiny, plastic dull), as that shader reads it.
         static Dictionary<string, Material> ParseMtl(string mtl)
         {
             var result = new Dictionary<string, Material>();
@@ -198,12 +208,27 @@ namespace CSE.Core
             string name = null;
             Color kd = Color.grey;
             float ns = 0f, pm = 0f;
+            string map = null;
 
             Action flush = () =>
             {
                 if (name == null) return;
                 var m = Shapes.Material(kd);
-                if (pm > 0.5f || ns > 60f)
+                var texture = map != null ? Textures.Embedded("models." + map) : null;
+                if (texture != null)
+                {
+                    m.color = Color.white;
+                    m.mainTexture = texture;
+                    if (specular == null) specular = Shader.Find("Specular") ?? Shader.Find("Legacy Shaders/Specular");
+                    if (specular != null)
+                    {
+                        m.shader = specular;
+                        m.mainTexture = texture;
+                        m.SetColor("_SpecColor", new Color(0.55f, 0.55f, 0.55f));
+                        m.SetFloat("_Shininess", Mathf.Lerp(0.5f, 0.05f, Mathf.Clamp01(ns / 100f)));
+                    }
+                }
+                else if (pm > 0.5f || ns > 60f)
                 {
                     if (specular == null) specular = Shader.Find("Specular") ?? Shader.Find("Legacy Shaders/Specular");
                     if (specular != null)
@@ -229,6 +254,7 @@ namespace CSE.Core
                         name = p[1];
                         kd = Color.grey;
                         ns = pm = 0f;
+                        map = null;
                         break;
                     case "Kd":
                         // Blender stores linear colours; the game renders in gamma space.
@@ -239,6 +265,9 @@ namespace CSE.Core
                         break;
                     case "Pm":
                         pm = F(p[1]);
+                        break;
+                    case "map_Kd":
+                        map = p[p.Length - 1];
                         break;
                 }
             }
